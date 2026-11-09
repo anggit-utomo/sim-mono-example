@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
+import { InjectQueue, OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { PrismaService } from '@sim/db';
 import {
@@ -11,6 +11,7 @@ import {
   ProcessIngestData,
   ingestJobId,
 } from '@sim/shared';
+import { recordJobRun } from './job-run.recorder';
 
 // CRON LANE: concurrency 1, so two sweeps can never overlap.
 @Processor(CRON_QUEUE, { concurrency: 1 })
@@ -75,6 +76,27 @@ export class CronProcessor extends WorkerHost {
       this.prisma.customer.count(),
       this.prisma.customerIngest.groupBy({ by: ['status'], _count: { _all: true } }),
     ]);
-    return { customers, ingest: Object.fromEntries(byStatus.map((r) => [r.status, r._count._all])) };
+    // Retention: history older than 30 days is deleted by the nightly cron.
+    const pruned = await this.prisma.jobRun
+      .deleteMany({ where: { finishedAt: { lt: new Date(Date.now() - 30 * 24 * 3600_000) } } })
+      .catch(() => ({ count: 0 }));
+    return {
+      customers,
+      ingest: Object.fromEntries(byStatus.map((r) => [r.status, r._count._all])),
+      prunedJobRuns: pruned.count,
+    };
+  }
+
+  @OnWorkerEvent('completed')
+  async onCompleted(job: Job) {
+    if (!job) return;
+    await recordJobRun(this.prisma, CRON_QUEUE, job, 'COMPLETED');
+  }
+
+  @OnWorkerEvent('failed')
+  async onFailed(job: Job | undefined, err: Error) {
+    if (!job) return;
+    this.logger.warn(`jobId=${job.id ?? '?'} jobName=${job.name} failed error=${err.message}`);
+    await recordJobRun(this.prisma, CRON_QUEUE, job, 'FAILED', err);
   }
 }

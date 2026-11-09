@@ -3,6 +3,7 @@ import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { PrismaService } from '@sim/db';
 import { CustomerPayload, FAST_LANE_QUEUE, ProcessIngestData } from '@sim/shared';
+import { recordJobRun } from './job-run.recorder';
 
 // Magic name prefix that forces a throw. Training-only fault injection for
 // test scenario 6 (3 attempts, then FAILED). Remove before real migration.
@@ -82,6 +83,7 @@ export class FastLaneProcessor extends WorkerHost {
     if (!job) return;
     const log = this.prefix(job);
     this.logger.warn(`${log} failed attempt=${job.attemptsMade} error=${err.message}`);
+    await recordJobRun(this.prisma, FAST_LANE_QUEUE, job, 'FAILED', err);
     const exhausted = job.attemptsMade >= (job.opts.attempts ?? 1);
     if (!exhausted) return;
     await this.prisma.customerIngest
@@ -90,5 +92,11 @@ export class FastLaneProcessor extends WorkerHost {
         data: { status: 'FAILED', lastError: err.message.slice(0, 1000) },
       })
       .catch(() => undefined);
+  }
+
+  @OnWorkerEvent('completed')
+  async onCompleted(job: Job<ProcessIngestData>) {
+    if (!job) return;
+    await recordJobRun(this.prisma, FAST_LANE_QUEUE, job, 'COMPLETED');
   }
 }
