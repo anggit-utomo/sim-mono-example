@@ -1,4 +1,17 @@
 import 'reflect-metadata';
+import path from 'path';
+import { config } from 'dotenv';
+// Load repo-root .env (turbo runs each app with its own cwd, so env
+// must be loaded explicitly, not inherited from the shell). Tries dist-,
+// src-, and cwd-relative locations; dotenv skips missing files and never
+// overrides already-set vars.
+for (const p of [
+  path.resolve(__dirname, '..', '..', '..', '.env'),
+  path.resolve(process.cwd(), '.env'),
+  path.resolve(process.cwd(), '..', '..', '.env'),
+]) {
+  config({ path: p });
+}
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ApiModule } from './api.module';

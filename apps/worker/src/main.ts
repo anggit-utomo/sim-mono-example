@@ -1,4 +1,14 @@
 import 'reflect-metadata';
+import path from 'path';
+import { config } from 'dotenv';
+// Load repo-root .env (see apps/api/src/main.ts).
+for (const p of [
+  path.resolve(__dirname, '..', '..', '..', '.env'),
+  path.resolve(process.cwd(), '.env'),
+  path.resolve(process.cwd(), '..', '..', '.env'),
+]) {
+  config({ path: p });
+}
 import { NestFactory } from '@nestjs/core';
 import { WorkerModule, WorkerService } from './worker.module';
 

@@ -202,6 +202,9 @@ importers:
       class-validator:
         specifier: 0.15.1
         version: 0.15.1
+      dotenv:
+        specifier: ^18.0.9
+        version: 18.0.9
       reflect-metadata:
         specifier: 0.2.2
         version: 0.2.2
@@ -221,6 +224,9 @@ importers:
 
   apps/dashboard:
     dependencies:
+      dotenv:
+        specifier: ^18.0.9
+        version: 18.0.9
       next:
         specifier: 15.4.6
         version: 15.4.6(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -261,6 +267,9 @@ importers:
       bullmq:
         specifier: 5.61.0
         version: 5.61.0
+      dotenv:
+        specifier: ^18.0.9
+        version: 18.0.9
       reflect-metadata:
         specifier: 0.2.2
         version: 0.2.2
