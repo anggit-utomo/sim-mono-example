@@ -2,7 +2,9 @@ import { Injectable, Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { CRON_QUEUE, FAST_LANE_QUEUE, redisConnection } from '@sim/shared';
 import { PrismaService } from '@sim/db';
+import { CronProcessor } from './cron.processor';
 import { FastLaneProcessor } from './fast-lane.processor';
+import { SchedulerService } from './scheduler.service';
 
 @Injectable()
 export class WorkerService {
@@ -25,6 +27,7 @@ const lanes = (process.env.WORKER_LANES ?? 'fast,cron').split(',').map((s) => s.
     PrismaService,
     WorkerService,
     ...(lanes.includes('fast') ? [FastLaneProcessor] : []),
+    ...(lanes.includes('cron') ? [CronProcessor, SchedulerService] : []),
   ],
 })
 export class WorkerModule {}
