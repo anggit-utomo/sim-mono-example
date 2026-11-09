@@ -9,6 +9,7 @@ async function bootstrap() {
   const svc = app.get(WorkerService);
   // eslint-disable-next-line no-console
   console.log(`worker started lanes=${svc.lanes()}`);
-  setInterval(() => undefined, 1 << 30);
+  // Keep the loop alive while connections are open; unref'd so SIGTERM can exit.
+  setInterval(() => undefined, 1 << 30).unref();
 }
 bootstrap();

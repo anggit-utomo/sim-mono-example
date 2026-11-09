@@ -1,4 +1,8 @@
 import { Injectable, Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bullmq';
+import { CRON_QUEUE, FAST_LANE_QUEUE, redisConnection } from '@sim/shared';
+import { PrismaService } from '@sim/db';
+import { FastLaneProcessor } from './fast-lane.processor';
 
 @Injectable()
 export class WorkerService {
@@ -7,7 +11,20 @@ export class WorkerService {
   }
 }
 
+// WORKER_LANES=fast,cron (default) | fast | cron
+// Same code, so the lanes can later deploy as two separate processes.
+const lanes = (process.env.WORKER_LANES ?? 'fast,cron').split(',').map((s) => s.trim());
+
+// No HTTP server: this process only consumes jobs.
 @Module({
-  providers: [WorkerService],
+  imports: [
+    BullModule.forRoot({ connection: redisConnection() }),
+    BullModule.registerQueue({ name: FAST_LANE_QUEUE }, { name: CRON_QUEUE }),
+  ],
+  providers: [
+    PrismaService,
+    WorkerService,
+    ...(lanes.includes('fast') ? [FastLaneProcessor] : []),
+  ],
 })
 export class WorkerModule {}

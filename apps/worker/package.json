@@ -10,8 +10,12 @@
     "lint": "echo lint-ok"
   },
   "dependencies": {
+    "@nestjs/bullmq": "11.0.5",
     "@nestjs/common": "11.1.8",
     "@nestjs/core": "11.1.8",
+    "@sim/db": "workspace:*",
+    "@sim/shared": "workspace:*",
+    "bullmq": "5.61.0",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.1"
   },
