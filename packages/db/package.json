@@ -9,9 +9,18 @@
     "dev": "tsc -p tsconfig.json --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "echo lint-ok",
-    "db:seed": "echo seed-not-implemented"
+    "db:seed": "set -a && . ../../.env && set +a && tsx src/seed.ts"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.6.0",
+    "@types/node": "^26.6.6",
+    "prisma": "6.19.3",
+    "tsx": "^4.23.15",
     "typescript": "5.9.2"
+  },
+  "dependencies": {
+    "@nestjs/common": "11.1.8",
+    "@prisma/client": "6.19.3",
+    "dotenv": "^18.0.9"
   }
 }
