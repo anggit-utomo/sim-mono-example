@@ -1,0 +1,105 @@
+{
+    "ZCUST0101": {
+        "IDOC": {
+            "EDI_DC40": {
+                "TABNAM": "EDI_DC40",
+                "MANDT": "100",
+                "DOCNUM": "0000000001502140",
+                "DOCREL": "758",
+                "STATUS": "30",
+                "DIRECT": "1",
+                "OUTMOD": "2",
+                "IDOCTYP": "ZCUST0101",
+                "MESTYP": "ZCUST",
+                "SNDPOR": "SAPSGD",
+                "SNDPRT": "LS",
+                "SNDPRN": "ZDEV100",
+                "RCVPOR": "ZMSQ0018",
+                "RCVPRT": "LS",
+                "RCVPRN": "ZMSP001",
+                "CREDAT": "20261102",
+                "CRETIM": "172424",
+                "SERIAL": "20261102172424"
+            },
+            "Z1KNA1": [
+                {
+                    "ZSYSTEM": "*",
+                    "KUNNR": "0002812259",
+                    "KTOKD": "0001",
+                    "NAME1": " NAME 1 FOR TEST 1102-01",
+                    "NAME2": "NAME2",
+                    "NAME3": "NAME 3",
+                    "NAME4": null,
+                    "ADDR1": "ADDRESS 1235656",
+                    "ADDR2": null,
+                    "ADDR3": null,
+                    "STREET": null,
+                    "CITY1": null,
+                    "PSTLZ": "138568",
+                    "LAND1": "SG",
+                    "ERNAM": "RFC-MULE",
+                    "ERDAT": "20261102",
+                    "ERZET": "150433",
+                    "AENAM": "62250521",
+                    "AEDAT": "20261102",
+                    "AEZET": "172230",
+                    "SMTP_ADDR": "123@TEST.COM",
+                    "BAHNS": "3",
+                    "REGIO": null,
+                    "TELF1": "91113456",
+                    "TELFX": "67840932",
+                    "SPERR": null,
+                    "KONZS": null,
+                    "REMARK": "cp1",
+                    "STCD1": null,
+                    "STCD3": null,
+                    "NODEL": null,
+                    "ADDR4": null,
+                    "Z1KNB1": [
+                        {
+                            "BUKRS": "WTRD"
+                        }
+                    ],
+                    "Z1KNVV": [
+                        {
+                            "VKORG": "WTRD",
+                            "VTWEG": "10",
+                            "SPART": "10",
+                            "SORT1": null,
+                            "Z1KNVPM": [
+                                {
+                                    "PARVW": "SP",
+                                    "KUNN2": "0002812259",
+                                    "DEFPA": null
+                                },
+                                {
+                                    "PARVW": "BP",
+                                    "KUNN2": "0002812259",
+                                    "DEFPA": null
+                                },
+                                {
+                                    "PARVW": "PY",
+                                    "KUNN2": "0002812259",
+                                    "DEFPA": null
+                                },
+                                {
+                                    "PARVW": "SH",
+                                    "KUNN2": "0002812259",
+                                    "DEFPA": null
+                                }
+                            ]
+                        }
+                    ],
+                    "Z1KNA2": [
+                        {
+                            "SORTL": "TERM12",
+                            "ZADTEL": null,
+                            "ZADFAX": null,
+                            "ZADSMTP": null
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

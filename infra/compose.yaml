@@ -1,0 +1,34 @@
+# Local containers (Podman, not Docker)
+# Usage: podman compose -f infra/compose.yaml up -d
+services:
+  postgres:
+    image: docker.io/library/postgres:17
+    network_mode: host
+    environment:
+      POSTGRES_USER: sim
+      POSTGRES_PASSWORD: sim
+      POSTGRES_DB: sim
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sim -d sim"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: docker.io/library/redis:7
+    network_mode: host
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction", "--port", "6379"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata: {}
+  redisdata: {}

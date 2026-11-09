@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum IngestOperation {
+  CREATE
+  UPDATE
+}
+
+enum IngestStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+// The real customer table (seed 300k rows here).
+model Customer {
+  id           String   @id @default(uuid())
+  externalId   String   @unique
+  name         String
+  email        String
+  lastIngestAt DateTime @default(now()) // guards against out-of-order updates
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([email])
+}
+
+// Inbox: every accepted request is stored first, so nothing is lost if Redis is down.
+// This is also the history the dashboard can show.
+model CustomerIngest {
+  id          String          @id @default(uuid())
+  externalId  String
+  operation   IngestOperation
+  payload     Json
+  status      IngestStatus    @default(PENDING)
+  attempts    Int             @default(0)
+  lastError   String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  processedAt DateTime?
+
+  @@index([status, createdAt])
+  @@index([externalId])
+}
