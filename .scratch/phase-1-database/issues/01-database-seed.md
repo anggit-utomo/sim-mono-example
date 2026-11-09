@@ -4,8 +4,12 @@
 
 **Blocked by:** 01 (Phase 0 scaffold and infra).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Migration applies cleanly with Customer, CustomerIngest, and JobRun plus required indexes
-- [ ] Seed inserts exactly 300000 sequential external IDs; rerun inserts zero
-- [ ] Unique externalId enforced; shared client service shared by API and worker
+- [x] Migration applies cleanly with Customer, CustomerIngest, and JobRun plus required indexes
+- [x] Seed inserts exactly 300000 sequential external IDs; rerun inserts zero
+- [x] Unique externalId enforced; shared client service shared by API and worker
+
+## Comments
+
+Verified: migrate dev + status clean; seed 300000 in ~18s, rerun 0; duplicate externalId rejected; all 9 indexes present; build/typecheck/lint green; committed b622162.
