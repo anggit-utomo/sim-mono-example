@@ -172,3 +172,9 @@ filter Logs — a matching row appears within seconds. Filter
   server-side token — you never type it.
 - Seeded customers: `EXT-000001` … `EXT-300000`.
 - Poison name for failure drills: any name starting with `__FAIL__`.
+
+## 7. Running locally (training only)
+
+- `pnpm dev` starts everything. Fixed ports: dashboard `3000`,
+  API `3001`, docs app `3002`.
+- The walkthrough curl targets the API at `http://localhost:3001`.

@@ -56,6 +56,11 @@ export default function OverviewDocs() {
         </tbody>
       </table>
 
+      <h2>Running locally</h2>
+      <p>
+        <code>pnpm dev</code> starts everything. Fixed ports: dashboard on <code>3000</code>,
+        API on <code>3001</code>, this docs app on <code>3002</code>.
+      </p>
       <h2>Health screen</h2>
       <p>
         Open the real Overview first whenever something feels wrong. If PENDING or FAILED is
