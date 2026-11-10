@@ -1,3 +1,10 @@
+import CopyButton from './copy-button';
+
+const CURL = `curl -X POST http://localhost:3001/create-customer \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: dev-key-1" \\
+  -d '{"externalId":"EXT-990001","name":"Ada","email":"ada@example.com"}'`;
+
 export default function WalkthroughDocs() {
   return (
     <>
@@ -15,6 +22,11 @@ export default function WalkthroughDocs() {
       </ol>
       <span className="mock-label">Example view — not live data</span>
       <pre>{JSON.stringify({ externalId: 'EXT-990001', name: 'Ada', email: 'ada@example.com' }, null, 2)}</pre>
+      <h2>Try it — copy-paste curl</h2>
+      <div className="toolbar">
+        <CopyButton text={CURL} />
+      </div>
+      <pre>{CURL}</pre>
     </>
   );
 }
