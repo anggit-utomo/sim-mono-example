@@ -2,7 +2,7 @@
 #   podman build -f apps/docs/Dockerfile .
 # Emits Next static export to /out; the compose docs-build service copies it
 # onto the docs-static volume served by Caddy. No long-lived process.
-FROM docker.io/library/node:20-slim AS build
+FROM docker.io/library/node:24-slim AS build
 RUN corepack enable && corepack prepare pnpm@12.15.0 --activate
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
@@ -16,6 +16,6 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm --filter @sim/docs build
 
-FROM docker.io/library/node:20-slim AS runtime
+FROM docker.io/library/node:24-slim AS runtime
 COPY --from=build /repo/apps/docs/out /srv/docs
 CMD ["cp", "-r", "/srv/docs/.", "/out/"]

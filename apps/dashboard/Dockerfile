@@ -1,7 +1,7 @@
 # @sim/dashboard production image. Built from repo root:
 #   podman build -f apps/dashboard/Dockerfile .
 # ADMIN_TOKEN is runtime-only (server components); never pass it as a build ARG.
-FROM docker.io/library/node:20-slim AS build
+FROM docker.io/library/node:24-slim AS build
 RUN corepack enable && corepack prepare pnpm@12.15.0 --activate
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
@@ -17,7 +17,7 @@ ARG API_URL=http://api:3001
 ENV API_URL=$API_URL
 RUN pnpm --filter @sim/dashboard build
 
-FROM docker.io/library/node:20-slim AS runtime
+FROM docker.io/library/node:24-slim AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends wget && rm -rf /var/lib/apt/lists/*
 WORKDIR /repo/apps/dashboard
 COPY --from=build /repo/node_modules /repo/node_modules
