@@ -247,6 +247,28 @@ importers:
         specifier: 5.9.2
         version: 5.9.2
 
+  apps/docs:
+    dependencies:
+      next:
+        specifier: 15.4.6
+        version: 15.4.6(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      react:
+        specifier: 19.1.1
+        version: 19.1.1
+      react-dom:
+        specifier: 19.1.1
+        version: 19.1.1(react@19.1.1)
+    devDependencies:
+      '@types/node':
+        specifier: 22.15.0
+        version: 22.15.0
+      '@types/react':
+        specifier: 19.1.8
+        version: 19.1.8
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+
   apps/worker:
     dependencies:
       '@nestjs/bullmq':
