@@ -10,7 +10,7 @@ export type Step = {
   tone: Tone;
 };
 
-const TONES: Record<Tone, { fill: string; stroke: string; title: string; sub: string; badge: string }> = {
+export const TONES: Record<Tone, { fill: string; stroke: string; title: string; sub: string; badge: string }> = {
   slate: { fill: '#f1f5f9', stroke: '#94a3b8', title: '#0f172a', sub: '#64748b', badge: '#475569' },
   amber: { fill: '#fef3c7', stroke: '#d97706', title: '#78350f', sub: '#92400e', badge: '#d97706' },
   blue: { fill: '#dbeafe', stroke: '#2563eb', title: '#1e3a8a', sub: '#1d4ed8', badge: '#2563eb' },

@@ -1,5 +1,6 @@
 import Diagram, { Legend } from '../flows/diagram';
 import type { Step } from '../flows/diagram';
+import FlowChart, { type FNode } from './detail';
 
 const DELIVERY: Step[] = [
   { title: '3rd party sender', sub: 'POST create/update', tone: 'slate' },
@@ -9,18 +10,132 @@ const DELIVERY: Step[] = [
   { title: 'PostgreSQL :5432', sub: 'upsert customer', sub2: 'DONE + job run', tone: 'green' },
 ];
 
-const READ: Step[] = [
-  { title: 'Operator', sub: 'human in browser', tone: 'slate' },
-  { title: 'Dashboard · Next :3000', sub: 'Overview Queues Cron', sub2: 'Ingests Logs Customers', tone: 'slate' },
-  { title: 'API · /admin/* :3001', sub: 'reads + trigger/retry', sub2: 'requeue actions', tone: 'blue' },
-  { title: 'PostgreSQL + Redis', sub: 'source of truth', sub2: 'live queue state', tone: 'green' },
+const ACCEPT: FNode[] = [
+  {
+    kind: 'box', title: '1 · Guard + validate', tone: 'slate',
+    code: ['POST create/update → accept()', 'ApiKeyGuard checks x-api-key', 'CustomerDto: id, name, email'],
+  },
+  {
+    kind: 'box', title: '2 · Store inbox PENDING', tone: 'amber',
+    code: ['prisma.customerIngest.create', 'set status = PENDING', 'operation CREATE | UPDATE'],
+    edge: 'valid → 202 route',
+  },
+  {
+    kind: 'box', title: '3 · Enqueue fast-lane', tone: 'amber',
+    code: ['fastLane.add PROCESS_INGEST', 'jobId ingest-<id>-0', 'delay = FAST_LANE_DELAY_MS'],
+    edge: 'stored',
+  },
+  {
+    kind: 'diamond', title: 'Redis up in 3s?', tone: 'amber', note: 'race: add() vs 3s timeout',
+    branch: { edge: 'no (down/slow)', steps: [{ title: 'Still ACCEPTED', title2: 'stays PENDING', sub: 'sweeper rescues after 60s', tone: 'red' }] },
+    edge: 'attempt',
+  },
+  {
+    kind: 'box', title: '4 · Return ACCEPTED', tone: 'green',
+    code: ['{ ingestId, ACCEPTED, delayMs }', 'server log: delay=Ns'],
+    edge: 'yes',
+  },
 ];
 
-const CRONLOOP: Step[] = [
-  { title: 'Worker · cron lane', sub: 'sweep + stats jobs', tone: 'slate' },
-  { title: 'sweep → fast-lane', sub: 'requeue stuck rows', sub2: 'via Redis BullMQ', tone: 'blue' },
-  { title: 'stats → job run', sub: 'counts + breakdown', sub2: 'stored in PostgreSQL', tone: 'blue' },
-  { title: 'Overview Latest stats', sub: 'dashboard reads it', tone: 'green' },
+const PROCESS: FNode[] = [
+  {
+    kind: 'box', title: '1 · Load inbox row', tone: 'blue',
+    code: ['process(job) in fast-lane', 'findUnique by ingestId'],
+  },
+  {
+    kind: 'diamond', title: 'Row exists?', tone: 'amber',
+    branch: { edge: 'no', steps: [{ title: 'Skip: not found', sub: 'return, no crash', tone: 'slate' }] },
+    edge: 'loaded',
+  },
+  {
+    kind: 'diamond', title: 'Already DONE?', tone: 'amber',
+    branch: { edge: 'yes', steps: [{ title: 'Skip: idempotent', sub: 'return already-done', tone: 'slate' }] },
+    edge: 'yes',
+  },
+  {
+    kind: 'box', title: '2 · Mark PROCESSING', tone: 'blue',
+    code: ['update status = PROCESSING', 'attempts + 1'],
+    edge: 'no',
+  },
+  {
+    kind: 'diamond', title: 'Name __FAIL__…?', tone: 'red',
+    branch: {
+      edge: 'yes (throw)',
+      steps: [
+        { title: 'Throw injected fault', sub: 'retry ×3, exp backoff 2s', tone: 'red' },
+        { title: '3/3 exhausted → FAILED', title2: 'set FAILED + lastError', sub: 'recordJobRun FAILED', tone: 'red' },
+      ],
+    },
+    edge: 'checked',
+  },
+  {
+    kind: 'box', title: '3 · Tx: newer-wins check', tone: 'blue',
+    code: ['findUnique customer', 'lastIngestAt > createdAt ?'],
+    edge: 'no (healthy)',
+  },
+  {
+    kind: 'diamond', title: 'Newer applied?', tone: 'amber',
+    branch: { edge: 'yes', steps: [{ title: 'Stale: keep newer', sub: 'skip overwrite, still DONE', tone: 'amber' }] },
+    edge: 'compare',
+  },
+  {
+    kind: 'box', title: '4 · Upsert + DONE', tone: 'green',
+    code: ['upsert customer by externalId', 'update DONE + processedAt', 'recordJobRun COMPLETED'],
+    edge: 'no / applied',
+  },
+];
+
+const SWEEP: FNode[] = [
+  {
+    kind: 'box', title: 'Every 2 min */2 * * * *', tone: 'slate',
+    code: ['scheduler.service registers', 'cron queue job sweep-pending'],
+  },
+  {
+    kind: 'diamond', title: 'Stuck rows?', tone: 'amber',
+    note: 'PENDING>60s · FAILED att<10 · PROC stale>10m',
+    branch: { edge: 'no', steps: [{ title: 'enqueued: 0', sub: 'nothing to rescue', tone: 'green' }] },
+    edge: 'scan inbox',
+  },
+  {
+    kind: 'box', title: 'Requeue bulk', tone: 'blue',
+    code: ['addBulk PROCESS_INGEST', 'jobId ingest-<id>-<attempts>', 'dedupe by jobId'],
+    edge: 'yes, found',
+  },
+  {
+    kind: 'box', title: 'Report + record', tone: 'green',
+    code: ['return { enqueued: N }', 'recordJobRun COMPLETED'],
+    edge: 'done',
+  },
+];
+
+const STATS: FNode[] = [
+  {
+    kind: 'box', title: 'Nightly 02:00 CRON_TZ', tone: 'slate',
+    code: ['upsertJobScheduler idempotent', 'cron queue job aggregate-stats'],
+  },
+  {
+    kind: 'box', title: 'Count + prune', tone: 'blue',
+    code: ['customer.count', 'groupBy status → ingest { }', 'prune jobRun older than 30d'],
+    edge: 'run',
+  },
+  {
+    kind: 'box', title: 'Feed Overview', tone: 'green',
+    code: ['{ customers, ingest, pruned }', 'Latest stats card reads it'],
+    edge: 'store',
+  },
+];
+
+const ADMIN: Array<[string, string, string]> = [
+  ['POST /create-customer, /update-customer', 'controller → accept()', 'create PENDING row; fastLane.add + delay'],
+  ['GET /admin/ingests?status=&page=', 'count + findMany where status', 'order createdAt desc, 50/page'],
+  ['POST /admin/ingests/:id/requeue', 'findUnique; fastLane.add jobId ingest-<id>-<attempts>', 'status flips on pickup, not here'],
+  ['POST /admin/ingests/requeue-failed', 'findMany FAILED att<10, take 5000', 'addBulk same jobId scheme'],
+  ['POST /admin/fast-lane/jobs/:id/retry', 'getJob(id) → job.retry()', '404 if aged out of Redis'],
+  ['POST /admin/cron/:name/trigger', 'cron.add(name, {triggeredBy:manual})', 'sweep-pending | aggregate-stats'],
+  ['GET /admin/queues/:lane/jobs', 'getJobs(state) + getJobCounts', 'lane fast-lane|cron → customer-* queues'],
+  ['GET /admin/customers?q=', 'count + findMany', 'externalId = q OR email startsWith q'],
+  ['GET /admin/job-runs', 'count + findMany where queue+status', 'order finishedAt desc'],
+  ['GET /admin/cron', 'getJobSchedulers + last jobRun', 'pattern, tz, last result per schedule'],
 ];
 
 const INVENTORY: Array<[string, string, string, string]> = [
@@ -37,20 +152,39 @@ export default function ArchitectureDocs() {
     <>
       <h1>Architecture — whole system, one page</h1>
       <p>
-        Every box names the real service and port. Delivery always flows down path A
-        (fast-lane forever); operators watch through path B; path C is the safety net.
-        See <a href="/flows">Flows</a> for the copy-paste drills of each path.
+        Diamonds are decisions (follow the yes/no edge). Every box names the exact function,
+        query, and set underneath. See <a href="/flows">Flows</a> for the copy-paste drills.
       </p>
       <Legend />
 
-      <h2>A. Delivery path — 3rd party to customer row <span className="lane">FAST-LANE</span></h2>
+      <h2>Map — services at a glance</h2>
       <Diagram steps={DELIVERY} edges={['POST', 'enqueue', 'consume', 'upsert']} />
 
-      <h2>B. Operator read path — screen to source of truth</h2>
-      <Diagram steps={READ} edges={['browse', 'GET/POST', 'query']} />
+      <h2>1 · Accept — controller to inbox <span className="lane">FAST-LANE</span></h2>
+      <FlowChart nodes={ACCEPT} />
 
-      <h2>C. Cron loop — safety net and counting <span className="lane">CRON</span></h2>
-      <Diagram steps={CRONLOOP} edges={['schedule', 'rescue', 'report']} />
+      <h2>2 · Process — worker delivery, every branch <span className="lane">FAST-LANE</span></h2>
+      <FlowChart nodes={PROCESS} />
+
+      <h2>3 · Sweep — rescue stuck rows <span className="lane">CRON</span></h2>
+      <FlowChart nodes={SWEEP} />
+
+      <h2>4 · Stats — nightly count <span className="lane">CRON</span></h2>
+      <FlowChart nodes={STATS} />
+
+      <h2>Controller map — endpoint → function → query / set</h2>
+      <table>
+        <thead>
+          <tr><th>Endpoint</th><th>Function</th><th>Query / set</th></tr>
+        </thead>
+        <tbody>
+          {ADMIN.map(([e, f, q]) => (
+            <tr key={e}>
+              <td>{e}</td><td>{f}</td><td>{q}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       <h2>Service inventory</h2>
       <table>
