@@ -21,7 +21,18 @@ async function triggerAction(name: string) {
 }
 
 export default async function Cron() {
-  const schedulers = await adminGet<Scheduler[]>('/admin/cron');
+  let schedulers: Scheduler[] | null = null;
+  try {
+    schedulers = await adminGet<Scheduler[]>('/admin/cron');
+  } catch (e) {
+    return (
+      <>
+        <h1>Cron</h1>
+        <p className="error">Scheduler data unavailable (Redis down?): {(e as Error).message}</p>
+        <p>Inbox pages (Customers, Ingests, Logs) keep working.</p>
+      </>
+    );
+  }
   return (
     <>
       <h1>Cron</h1>

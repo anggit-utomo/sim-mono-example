@@ -23,6 +23,7 @@ import {
   ingestJobId,
 } from '@sim/shared';
 import { AdminGuard } from '../auth/admin.guard';
+import { withQueue } from './with-queue';
 
 const PAGE_SIZE = 50;
 const JOB_STATES = ['waiting', 'active', 'delayed', 'completed', 'failed'] as const;
@@ -51,10 +52,9 @@ export class AdminController {
 
   @Get('queues')
   async queues() {
-    const [fastLane, cron] = await Promise.all([
-      this.fastLane.getJobCounts(),
-      this.cron.getJobCounts(),
-    ]);
+    const [fastLane, cron] = await withQueue(
+      Promise.all([this.fastLane.getJobCounts(), this.cron.getJobCounts()]),
+    );
     return { fastLane, cron };
   }
 
@@ -70,7 +70,7 @@ export class AdminController {
     const queue = laneQueue(lane, this.fastLane, this.cron);
     const page = pageOf(pageRaw);
     const start = (page - 1) * PAGE_SIZE;
-    const jobs = await queue.getJobs([state as JobType], start, start + PAGE_SIZE - 1);
+    const jobs = await withQueue(queue.getJobs([state as JobType], start, start + PAGE_SIZE - 1));
     return {
       page,
       pageSize: PAGE_SIZE,
@@ -89,15 +89,15 @@ export class AdminController {
   // Retry a failed fast-lane job (only works while it is still in Redis).
   @Post('fast-lane/jobs/:id/retry')
   async retry(@Param('id') id: string) {
-    const job = await this.fastLane.getJob(id);
+    const job = await withQueue(this.fastLane.getJob(id));
     if (!job) throw new NotFoundException('Job not found (expired from Redis?)');
-    await job.retry();
+    await withQueue(job.retry());
     return { retried: id };
   }
 
   @Get('cron')
   async cronJobs(): Promise<unknown> {
-    const schedulers = await this.cron.getJobSchedulers();
+    const schedulers = await withQueue(this.cron.getJobSchedulers());
     return Promise.all(
       schedulers.map(async (s) => {
         const last = await this.prisma.jobRun.findFirst({
@@ -121,10 +121,12 @@ export class AdminController {
     if (!CRON_JOB_NAMES.includes(name as CronJobName)) {
       throw new BadRequestException(`Unknown cron job: ${name}`);
     }
-    const job = await this.cron.add(
-      name,
-      { triggeredBy: 'manual' },
-      { removeOnComplete: { count: 100 }, removeOnFail: { count: 100 } },
+    const job = await withQueue(
+      this.cron.add(
+        name,
+        { triggeredBy: 'manual' },
+        { removeOnComplete: { count: 100 }, removeOnFail: { count: 100 } },
+      ),
     );
     return { jobId: job.id };
   }
@@ -153,10 +155,12 @@ export class AdminController {
     const row = await this.prisma.customerIngest.findUnique({ where: { id } });
     if (!row) throw new NotFoundException('Ingest not found');
     const data: ProcessIngestData = { ingestId: row.id };
-    const job = await this.fastLane.add(JOBS.PROCESS_INGEST, data, {
-      ...FAST_LANE_JOB_OPTS,
-      jobId: ingestJobId(row.id, row.attempts),
-    });
+    const job = await withQueue(
+      this.fastLane.add(JOBS.PROCESS_INGEST, data, {
+        ...FAST_LANE_JOB_OPTS,
+        jobId: ingestJobId(row.id, row.attempts),
+      }),
+    );
     return { jobId: job.id };
   }
 
@@ -169,12 +173,14 @@ export class AdminController {
       select: { id: true, attempts: true },
     });
     if (rows.length === 0) return { enqueued: 0 };
-    await this.fastLane.addBulk(
-      rows.map((r) => ({
-        name: JOBS.PROCESS_INGEST,
-        data: { ingestId: r.id } satisfies ProcessIngestData,
-        opts: { ...FAST_LANE_JOB_OPTS, jobId: ingestJobId(r.id, r.attempts) },
-      })),
+    await withQueue(
+      this.fastLane.addBulk(
+        rows.map((r) => ({
+          name: JOBS.PROCESS_INGEST,
+          data: { ingestId: r.id } satisfies ProcessIngestData,
+          opts: { ...FAST_LANE_JOB_OPTS, jobId: ingestJobId(r.id, r.attempts) },
+        })),
+      ),
     );
     return { enqueued: rows.length };
   }

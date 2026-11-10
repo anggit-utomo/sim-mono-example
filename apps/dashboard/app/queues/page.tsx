@@ -29,9 +29,22 @@ export default async function Queues({
   searchParams: Promise<{ lane?: string; state?: string; page?: string }>;
 }) {
   const { lane = 'fast-lane', state = 'waiting', page = '1' } = await searchParams;
-  const data = await adminGet<Page<JobItem>>(
-    `/admin/queues/${encodeURIComponent(lane)}/jobs?state=${encodeURIComponent(state)}&page=${encodeURIComponent(page)}`,
-  );
+  let data: Page<JobItem> | null = null;
+  try {
+    data = await adminGet<Page<JobItem>>(
+      `/admin/queues/${encodeURIComponent(lane)}/jobs?state=${encodeURIComponent(state)}&page=${encodeURIComponent(page)}`,
+    );
+  } catch (e) {
+    return (
+      <>
+        <h1>Queues</h1>
+        <p className="error">Queue data unavailable (Redis down?): {(e as Error).message}</p>
+        <p>
+          <a href="/queues">Back to queues</a> · Inbox pages (Customers, Ingests, Logs) keep working.
+        </p>
+      </>
+    );
+  }
 
   return (
     <>
