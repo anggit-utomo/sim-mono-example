@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useContext } from 'react';
 import { LocaleCtx } from './locale-provider';
 import { useT, useTa } from './locale-hooks';
@@ -45,9 +46,9 @@ export default function DocsNav() {
   return (
     <>
       {HREFS.map((h, i) => (
-        <a key={h} href={h}>
+        <Link key={h} href={h}>
           {labels[i] ?? h}
-        </a>
+        </Link>
       ))}
       <LocaleToggle />
     </>
