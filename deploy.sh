@@ -10,6 +10,7 @@ git pull --ff-only
 $COMPOSE build
 
 # stateful deps first, then one-shot static docs + migrations
+# (migrate reuses the api image, so build must come first)
 $COMPOSE up -d redis-sim
 until podman exec sim-redis redis-cli ping >/dev/null 2>&1; do sleep 1; done
 $COMPOSE run --rm docs-build
