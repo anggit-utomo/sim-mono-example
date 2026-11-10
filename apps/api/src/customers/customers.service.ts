@@ -19,6 +19,11 @@ export class CustomersService {
   // sweeper enqueue the PENDING row once Redis is back.
   private readonly enqueueTimeoutMs = 3_000;
 
+  // Training/demo knob: hold accepted rows in PENDING this long before the
+  // fast-lane worker may pick them up (job sits in the delayed set, visible
+  // under Queues -> delayed). Default 0 = deliver immediately.
+  private readonly fastLaneDelayMs = Number(process.env.FAST_LANE_DELAY_MS ?? 0);
+
   constructor(
     private readonly prisma: PrismaService,
     @InjectQueue(FAST_LANE_QUEUE) private readonly fastLane: Queue,
@@ -38,6 +43,7 @@ export class CustomersService {
       const add = this.fastLane.add(JOBS.PROCESS_INGEST, data, {
         ...FAST_LANE_JOB_OPTS,
         jobId: ingestJobId(ingest.id, 0),
+        ...(this.fastLaneDelayMs > 0 ? { delay: this.fastLaneDelayMs } : {}),
       });
       const timeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('enqueue timed out')), this.enqueueTimeoutMs),

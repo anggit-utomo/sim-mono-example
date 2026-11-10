@@ -148,6 +148,9 @@ filter Logs — a matching row appears within seconds. Filter
    and header `x-api-key: dev-key-1`. You get `{"ingestId":"…","status":"ACCEPTED"}`.
 2. Open **Ingests**, filter PENDING — your row appears, then flips to DONE
    within about a second.
+   (Training tip: set `FAST_LANE_DELAY_MS=20000` in `.env` and restart the
+   API to hold new rows in PENDING for 20 seconds so you can catch them here.
+   Default `0` delivers immediately.)
 3. Open **Customers**, search `EXT-990001` — Ada is there.
 4. Send an **update** for the same ID with a new name. Customers shows one
    row with the new name — newest wins.

@@ -23,6 +23,11 @@ export default function WalkthroughDocs() {
       <span className="mock-label">Example view — not live data</span>
       <pre>{JSON.stringify({ externalId: 'EXT-990001', name: 'Ada', email: 'ada@example.com' }, null, 2)}</pre>
       <h2>Try it — copy-paste curl</h2>
+      <p>
+        Training tip: set <code>FAST_LANE_DELAY_MS=20000</code> in <code>.env</code> and restart the
+        API to hold new rows in PENDING for 20 seconds, so you can catch them on the Ingests page.
+        Default <code>0</code> delivers immediately.
+      </p>
       <div className="toolbar">
         <CopyButton text={CURL} />
       </div>
