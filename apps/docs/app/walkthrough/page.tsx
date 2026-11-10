@@ -13,9 +13,10 @@ export default function WalkthroughDocs() {
         <li>
           Send a customer through the API (replace the ID to repeat): POST /create-customer with
           externalId EXT-990001, name Ada, email ada@example.com and header x-api-key dev-key-1.
-          You get an ingestId and status ACCEPTED.
+          You get an ingestId, status ACCEPTED, and delayMs.
         </li>
-        <li>Open Ingests, filter PENDING — your row appears, then flips to DONE within a second.</li>
+        <li>Open Ingests, filter PENDING — your row appears, then flips to DONE within a second
+          (or after the configured delay — see training tip below).</li>
         <li>Open Customers, search EXT-990001 — Ada is there.</li>
         <li>Send an update for the same ID with a new name. Customers shows one row with the new name — newest wins.</li>
         <li>Open Logs — one COMPLETED run for your ingest.</li>
@@ -32,6 +33,8 @@ export default function WalkthroughDocs() {
         <CopyButton text={CURL} />
       </div>
       <pre>{CURL}</pre>
+      <p>You get back (delayMs mirrors FAST_LANE_DELAY_MS; the API console also logs it):</p>
+      <pre>{JSON.stringify({ ingestId: '…', status: 'ACCEPTED', delayMs: 20000 }, null, 2)}</pre>
     </>
   );
 }
