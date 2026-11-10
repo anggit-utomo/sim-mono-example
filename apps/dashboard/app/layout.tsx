@@ -23,6 +23,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <main className="main">{children}</main>
+        <footer className="toolbar">
+          <small>
+            New here? Read the operator guide: <code>docs/user-guide.md</code> in the repo.
+          </small>
+        </footer>
       </body>
     </html>
   );

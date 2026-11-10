@@ -21,6 +21,11 @@ Services: dashboard `http://localhost:3000`, API `http://localhost:3001`.
 - `pnpm lint` — lint all
 - `pnpm db:seed` — seed customers (Phase 1+)
 
+## Operator guide
+
+`docs/user-guide.md` explains the flow, every dashboard page, and how to test
+each one — written for non-developers.
+
 ## Architecture
 
 Third parties POST to the API, which stores a `CustomerIngest` inbox row then enqueues a fast-lane job. The worker upserts `Customer` immediately; the cron sweeper recovers anything missed. The dashboard calls admin endpoints only.
