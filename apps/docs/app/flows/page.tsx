@@ -44,25 +44,31 @@ curl "http://localhost:3001/admin/ingests?status=DONE" -H "Authorization: Bearer
 
 const FAILURE: Step[] = [
   { title: 'POST __FAIL__boom', sub: 'training poison', tone: 'slate' },
-  { title: 'worker throws', sub: 'attempts climb', sub2: 'exponential backoff', tone: 'blue' },
-  { title: 'FAILED after 3 tries', sub: 'lastError on row', sub2: 'Queues → failed', tone: 'red' },
-  { title: 'fix + Requeue', sub: 'or sweep-pending', tone: 'amber' },
-  { title: 'redelivered → DONE', sub: 'Logs COMPLETED', tone: 'green' },
+  { title: 'worker throws ×3', sub: 'attempts 1 → 3', sub2: 'ends FAILED', tone: 'red' },
+  { title: 'Requeue replays it', sub: 'same payload fails again', sub2: 'attempts 4 → 6 …', tone: 'amber' },
+  { title: 'resend fixed data', sub: 'update-customer', sub2: 'good name, same ID', tone: 'blue' },
+  { title: 'DONE · customer live', sub: 'newest-wins applied', tone: 'green' },
 ];
 
 const RUN_FAILURE = `${TOKEN_NOTE}
-# 1. poison row (fails 3x, ends FAILED)
+# 1. poison row (fails 3x, ends FAILED — the name itself is the fault)
 curl -X POST http://localhost:3001/create-customer \\
   -H "Content-Type: application/json" -H "x-api-key: dev-key-1" \\
   -d '{"externalId":"EXT-990098","name":"__FAIL__boom","email":"boom@example.com"}'
-# 2. watch attempts climb, then FAILED with "injected fault"
+# 2. watch attempts 1 → 3, then FAILED with "injected fault"
 curl "http://localhost:3001/admin/ingests?status=FAILED" -H "Authorization: Bearer $T"
-# 3a. requeue one row (copy its id; without a real fix it fails again — that is the drill)
+# 3. requeue replays the SAME payload, so it fails again (attempts 4 → 6).
+#    That is the point: the loop is visible and controllable, not magic.
 curl -X POST http://localhost:3001/admin/ingests/<INGEST_ID>/requeue -H "Authorization: Bearer $T"
-# 3b. or requeue all recoverable FAILED rows at once
-curl -X POST http://localhost:3001/admin/ingests/requeue-failed -H "Authorization: Bearer $T"
-# 3c. or let the sweeper catch it (FAILED, attempts < 10)
-curl -X POST http://localhost:3001/admin/cron/sweep-pending/trigger -H "Authorization: Bearer $T"`;
+#    NOTE: every cycle adds attempts; past 10 the sweeper and requeue-all
+#    stop picking the row up — don't loop a poison row forever.
+# 4. recover for real: resend FIXED data for the same ID (new ingest wins)
+curl -X POST http://localhost:3001/update-customer \\
+  -H "Content-Type: application/json" -H "x-api-key: dev-key-1" \\
+  -d '{"externalId":"EXT-990098","name":"Boom Fixed","email":"boom@example.com"}'
+# 5. confirm DONE + customer row (the poison row itself stays FAILED — history)
+curl "http://localhost:3001/admin/ingests?status=DONE" -H "Authorization: Bearer $T"
+curl "http://localhost:3001/admin/customers?q=EXT-990098" -H "Authorization: Bearer $T"`;
 
 const CRON: Step[] = [
   { title: 'sweep-pending / 2 min', sub: 'Trigger now = by hand', tone: 'slate' },
@@ -113,8 +119,9 @@ export default function FlowsDocs() {
       <RunIt script={RUN_DELAYED} />
 
       <h2>3. Failure and recovery — poison row drill</h2>
-      <p>Practice the main recovery loop: find the error, fix the cause, requeue.</p>
-      <Diagram steps={FAILURE} edges={['inject', 'retry ×3', 'recover', 'verify']} />
+      <p>Requeue replays the same payload, so a poison name re-fails — the loop is the drill.
+        Real recovery is a new ingest with fixed data.</p>
+      <Diagram steps={FAILURE} edges={['inject', 'exhaust', 'replays → re-fails', 'resend fixed']} />
       <RunIt script={RUN_FAILURE} />
 
       <h2>4. Cron loops — sweeper and nightly stats</h2>
