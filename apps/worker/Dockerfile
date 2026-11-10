@@ -1,7 +1,7 @@
 # @sim/worker production image. Built from repo root:
 #   podman build -f apps/worker/Dockerfile .
 FROM docker.io/library/node:24-slim AS build
-RUN corepack enable && corepack prepare pnpm@12.15.0 --activate
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/* && corepack enable && corepack prepare pnpm@12.15.0 --activate
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
 COPY apps/api/package.json apps/api/
@@ -12,7 +12,7 @@ COPY packages/db/package.json packages/db/
 COPY packages/shared/package.json packages/shared/
 RUN pnpm install --frozen-lockfile
 COPY . .
-RUN pnpm --filter @sim/db exec prisma generate && pnpm --filter @sim/worker build
+RUN pnpm --filter @sim/db exec prisma generate && pnpm --filter @sim/db --filter @sim/shared build && pnpm --filter @sim/worker build
 
 FROM docker.io/library/node:24-slim AS runtime
 WORKDIR /repo
