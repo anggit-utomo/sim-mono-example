@@ -42,17 +42,28 @@ continue — nothing else changes.
 ss -ltnp | grep -E '8080|8443'
 ```
 
-**3. Create the database role and DB.** Run once as the budget
-superuser (`<DB_USER>`/`<DB_NAME>` are budget's own credentials —
-this only adds a new role + DB, never touches budget tables):
+**3. Create the database role and DB.** Run on the VPS host where you
+are now (`~/sim` == `/home/deploy/sim`) — not inside a container,
+not on your laptop. Credentials come from budget's own env file; this
+only adds a new role + DB, never touches budget tables:
 
 ```bash
+# read budget's postgres credentials (stays on the VPS, never commit)
+set -a; . /home/deploy/budget/.env; set +a
+DB_USER="$DB_USERNAME"
+DB_NAME="$DB_DATABASE"
+
 SIM_PW=$(openssl rand -hex 32)
-podman exec -it budget-db psql -U <DB_USER> -d <DB_NAME> \
+podman exec -it budget-db psql -U "$DB_USER" -d "$DB_NAME" \
   -c "CREATE USER sim_prod WITH PASSWORD '$SIM_PW';" \
   -c "CREATE DATABASE sim_prod OWNER sim_prod;"
 echo "sim_prod password: $SIM_PW"
 ```
+
+Do NOT type literal `<DB_USER>` — bash reads `<`/`>` as file
+redirects, which is exactly the `No such file or directory` error
+above. Always use the `$DB_USER`/`$DB_NAME` variables (no angle
+brackets). Save the printed `sim_prod` password for step 4.
 
 **4. Write the env file** (VPS-only, never committed, mode 600).
 Generate the two remaining secrets, then create the file:
@@ -99,7 +110,7 @@ afterwards is normal.
 ## Every deploy after that
 
 ```bash
-ssh <vps>
+ssh <vps>   # your VPS hostname/IP (replace the brackets with the real value)
 cd /home/deploy/sim
 ./deploy.sh
 ```
