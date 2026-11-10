@@ -1,9 +1,5 @@
 import CopyButton from '../copy-button';
-
-const CURL = `curl -X POST http://localhost:3001/create-customer \\
-  -H "Content-Type: application/json" \\
-  -H "x-api-key: dev-key-1" \\
-  -d '{"externalId":"EXT-990001","name":"Ada","email":"ada@example.com"}'`;
+import { CURL } from './script';
 
 export default function WalkthroughDocs() {
   return (
