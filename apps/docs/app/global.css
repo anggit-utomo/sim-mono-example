@@ -132,3 +132,16 @@ pre {
   border-radius: 999px;
   display: inline-block;
 }
+.lane {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #1d4ed8;
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
+  border-radius: 4px;
+  padding: 0.1rem 0.45rem;
+  vertical-align: middle;
+  margin-left: 0.4rem;
+}

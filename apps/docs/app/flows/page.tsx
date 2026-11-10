@@ -96,6 +96,23 @@ function RunIt({ script }: { script: string }) {
   );
 }
 
+function Lane({ children }: { children: string }) {
+  return <span className="lane">{children}</span>;
+}
+
+function Checks({ items }: { items: string[] }) {
+  return (
+    <>
+      <h3>Where to check (dashboard :3000)</h3>
+      <ol>
+        {items.map((c, i) => (
+          <li key={i}>{c}</li>
+        ))}
+      </ol>
+    </>
+  );
+}
+
 export default function FlowsDocs() {
   return (
     <>
@@ -108,26 +125,58 @@ export default function FlowsDocs() {
       </p>
       <Legend />
 
-      <h2>1. Happy path — create to DONE</h2>
-      <p>The first drill every new operator runs.</p>
+      <h2>1. Happy path — create to DONE <Lane>FAST-LANE</Lane></h2>
+      <p>The first drill every new operator runs. Everything here travels the fast lane.</p>
       <Diagram steps={HAPPY} edges={['accept', 'deliver', 'apply']} />
       <RunIt script={RUN_HAPPY} />
+      <Checks
+        items={[
+          'Terminal: response shows ingestId, "ACCEPTED", delayMs. API console logs the accept line.',
+          'Dashboard → Ingests → Status = PENDING → your EXT- row, attempts 0.',
+          'Dashboard → Queues → lane fast-lane, state waiting (then active) → job ingest-<id>-0.',
+          'Dashboard → Ingests → Status = DONE; Customers → search the ID; Logs → queue customer-fast-lane, COMPLETED.',
+        ]}
+      />
 
-      <h2>2. Delayed demo — hold PENDING with FAST_LANE_DELAY_MS</h2>
+      <h2>2. Delayed demo — hold PENDING with FAST_LANE_DELAY_MS <Lane>FAST-LANE</Lane></h2>
       <p>Slow the system down so you can catch rows mid-flight on the inbox screen.</p>
       <Diagram steps={DELAYED} edges={['configure', 'enqueue', 'wait 20s']} />
       <RunIt script={RUN_DELAYED} />
+      <Checks
+        items={[
+          'Terminal/.env: set FAST_LANE_DELAY_MS=20000, restart API (Ctrl+C, pnpm dev).',
+          'Terminal: response shows "delayMs": 20000; API console logs delay=20s.',
+          'Dashboard → Queues → lane fast-lane, state delayed → your job; Ingests → PENDING. Overview fast-lane card shows delayed: 1.',
+          'Dashboard → Ingests → DONE; Overview delayed back to 0; Logs → COMPLETED run.',
+        ]}
+      />
 
-      <h2>3. Failure and recovery — poison row drill</h2>
+      <h2>3. Failure and recovery — poison row drill <Lane>FAST-LANE</Lane></h2>
       <p>Requeue replays the same payload, so a poison name re-fails — the loop is the drill.
-        Real recovery is a new ingest with fixed data.</p>
+        Real recovery is a new ingest with fixed data. (The optional sweeper catch-up lives on the cron lane.)</p>
       <Diagram steps={FAILURE} edges={['inject', 'exhaust', 'replays → re-fails', 'resend fixed']} />
       <RunIt script={RUN_FAILURE} />
+      <Checks
+        items={[
+          'Terminal: poison create accepted.',
+          'Dashboard → Ingests → Status = FAILED → lastError "injected fault", attempts 3. Queues → lane fast-lane, state failed.',
+          'Dashboard → Ingests → same row, attempts 6, still FAILED. Queues → failed again.',
+          'Terminal: update-customer with the fixed name (new ingest).',
+          'Dashboard → Customers → search ID shows fixed name; Ingests → DONE on the new row (poison row stays FAILED as history); Logs → COMPLETED.',
+        ]}
+      />
 
-      <h2>4. Cron loops — sweeper and nightly stats</h2>
-      <p>Verify the safety nets run on schedule and on demand.</p>
+      <h2>4. Cron loops — sweeper and nightly stats <Lane>CRON</Lane></h2>
+      <p>Verify the safety nets run on schedule and on demand. Everything here travels the cron lane.</p>
       <Diagram steps={CRON} edges={['schedule', 'catch up', 'count']} />
       <RunIt script={RUN_CRON} />
+      <Checks
+        items={[
+          'Terminal (or dashboard → Cron → Trigger now on aggregate-stats).',
+          'Dashboard → Logs → queue customer-cron, COMPLETED → fresh totals; Overview → Latest stats card updates; Cron page → last result updates.',
+          'Terminal (or Cron → Trigger now on sweep-pending); Logs → sweep run shows enqueued count (0 when healthy).',
+        ]}
+      />
     </>
   );
 }
