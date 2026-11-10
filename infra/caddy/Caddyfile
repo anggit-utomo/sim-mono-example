@@ -1,0 +1,12 @@
+sim-api.anggit.dev {
+	reverse_proxy sim-api:3001
+}
+
+sim-dashboard.anggit.dev {
+	reverse_proxy sim-dashboard:3000
+}
+
+sim-docs.anggit.dev {
+	root * /srv/sim/docs
+	file_server
+}

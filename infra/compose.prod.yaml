@@ -1,0 +1,135 @@
+services:
+  edge:
+    image: docker.io/library/caddy:2-alpine
+    container_name: sim-edge
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+      - "8443:443"
+      - "8443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - docs-static:/srv/sim/docs:ro
+    networks:
+      - sim-net
+
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    image: localhost/sim-api:latest
+    container_name: sim-api
+    restart: unless-stopped
+    mem_limit: 256m
+    env_file:
+      - /home/deploy/sim/.env
+    environment:
+      PORT: "3001"
+      REDIS_HOST: redis-sim
+      REDIS_PORT: "6379"
+    networks:
+      - sim-net
+      - budget_default
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build:
+      context: ..
+      dockerfile: apps/worker/Dockerfile
+    image: localhost/sim-worker:latest
+    container_name: sim-worker
+    restart: unless-stopped
+    mem_limit: 384m
+    env_file:
+      - /home/deploy/sim/.env
+    environment:
+      REDIS_HOST: redis-sim
+      REDIS_PORT: "6379"
+      WORKER_LANES: fast,cron
+      FAST_LANE_CONCURRENCY: "10"
+      FAST_LANE_DELAY_MS: "0"
+    networks:
+      - sim-net
+      - budget_default
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: apps/dashboard/Dockerfile
+      args:
+        API_URL: http://api:3001
+    image: localhost/sim-dashboard:latest
+    container_name: sim-dashboard
+    restart: unless-stopped
+    mem_limit: 256m
+    env_file:
+      - /home/deploy/sim/.env
+    environment:
+      API_URL: http://api:3001
+    networks:
+      - sim-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  redis-sim:
+    image: docker.io/library/redis:7
+    container_name: sim-redis
+    restart: unless-stopped
+    mem_limit: 128m
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "96mb", "--maxmemory-policy", "noeviction", "--port", "6379"]
+    volumes:
+      - redisdata:/data
+    networks:
+      - sim-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    image: localhost/sim-api:latest
+    container_name: sim-migrate
+    env_file:
+      - /home/deploy/sim/.env
+    environment:
+      REDIS_HOST: redis-sim
+      REDIS_PORT: "6379"
+    command: ["sh", "-c", "pnpm --filter @sim/db exec prisma migrate deploy"]
+    networks:
+      - sim-net
+      - budget_default
+    profiles:
+      - tools
+
+  docs-build:
+    build:
+      context: ..
+      dockerfile: apps/docs/Dockerfile
+    image: localhost/sim-docs-build:latest
+    container_name: sim-docs-build
+    volumes:
+      - docs-static:/out
+    profiles:
+      - tools
+
+networks:
+  sim-net:
+    driver: bridge
+  budget_default:
+    external: true
+
+volumes:
+  redisdata:
+  caddy_data:
+  caddy_config:
+  docs-static:

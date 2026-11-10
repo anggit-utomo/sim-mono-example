@@ -19,3 +19,15 @@ _Avoid_: switcher, route prefix, language route
 **Toggle**:
 The ID | EN button in the nav switching the provider locale in place on the same URL.
 _Avoid_: switcher links, counterpart links, language redirect
+
+**Edge**:
+The Caddy container holding the VPS's public ports for sim (`sim-edge` on 8080/8443).
+_Avoid_: shared proxy, budget Caddy_
+
+**Snippet**:
+The sim-owned Caddyfile (`infra/caddy/Caddyfile`) mounted into the edge; sim never edits budget's Caddyfile.
+_Avoid_: forked Caddyfile, second budget proxy_
+
+**Prod starts empty**:
+Migrations run on every deploy, `db:seed` never runs on the VPS; demo rows stay local.
+_Avoid_: seeded prod, demo data_
