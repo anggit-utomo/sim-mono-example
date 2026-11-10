@@ -53,7 +53,8 @@ export class CustomersService {
       // Redis down? Still accept: the cron sweeper will enqueue this row later.
       this.logger.error(`Enqueue failed for ${ingest.id}: ${(err as Error).message}`);
     }
+    this.logger.log(`accepted ${ingest.id} delay=${this.fastLaneDelayMs / 1000}s`);
 
-    return { ingestId: ingest.id, status: 'ACCEPTED' };
+    return { ingestId: ingest.id, status: 'ACCEPTED', delayMs: this.fastLaneDelayMs };
   }
 }
