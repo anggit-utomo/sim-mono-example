@@ -10,6 +10,7 @@ const NAV: Array<[string, string]> = [
   ['/logs', 'Logs'],
   ['/walkthrough', 'Walkthrough'],
   ['/troubleshooting', 'Troubleshooting'],
+  ['/flows', 'Flows'],
 ];
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -70,3 +70,34 @@ pre {
   border-radius: 4px;
   margin-bottom: 0.5rem;
 }
+.flow {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  max-width: 560px;
+  margin: 0.5rem 0 1.5rem;
+}
+.fnode {
+  border: 1px solid #94a3b8;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  background: #f8fafc;
+  font-size: 0.9rem;
+}
+.fnode.ok {
+  border-color: #15803d;
+}
+.fnode.error {
+  border-color: #b91c1c;
+}
+.fsub {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.15rem;
+}
+.farrow {
+  text-align: center;
+  color: #64748b;
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
