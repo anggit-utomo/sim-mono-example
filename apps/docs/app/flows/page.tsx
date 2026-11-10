@@ -77,13 +77,28 @@ const CRON: Step[] = [
   { title: 'Overview Latest stats', sub: 'Logs COMPLETED', tone: 'green' },
 ];
 
-const RUN_CRON = `${TOKEN_NOTE}
-# 1. run the nightly count now
+const RUN_CRON_A = `${TOKEN_NOTE}
+# TEST A — aggregate-stats (auditor). Proof is on 3 pages, not in this response.
 curl -X POST http://localhost:3001/admin/cron/aggregate-stats/trigger -H "Authorization: Bearer $T"
-# 2. confirm the COMPLETED run + fresh totals
-curl "http://localhost:3001/admin/job-runs?queue=customer-cron&status=COMPLETED" -H "Authorization: Bearer $T"
-# 3. run the sweeper now (enqueued: 0 when healthy, > 0 after the poison drill)
-curl -X POST http://localhost:3001/admin/cron/sweep-pending/trigger -H "Authorization: Bearer $T"`;
+# → {"jobId":"..."} only. Now check:
+#   Logs  → queue customer-cron + COMPLETED → aggregate-stats row, result =
+#           {"customers":300000,"ingest":{"PENDING":..,"DONE":..},"prunedJobRuns":..}
+#   Cron page → aggregate-stats row → last result column updates (reload page)
+#   Overview  → Latest stats card updates with the same numbers`;
+
+const RUN_CRON_B = `${TOKEN_NOTE}
+# TEST B — sweep-pending (safety net). Healthy system returns enqueued: 0,
+# so give it something to catch first: a poison row (FAILED, attempts 3 < 10).
+curl -X POST http://localhost:3001/create-customer \\
+  -H "Content-Type: application/json" -H "x-api-key: dev-key-1" \\
+  -d '{"externalId":"EXT-990097","name":"__FAIL__sweep","email":"sweep@example.com"}'
+# wait ~30s until Ingests shows it FAILED, then fire the sweeper by hand:
+curl -X POST http://localhost:3001/admin/cron/sweep-pending/trigger -H "Authorization: Bearer $T"
+# → {"jobId":"..."} only. Now check:
+#   Logs  → customer-cron + COMPLETED → sweep-pending row, result = {"enqueued":1}
+#   Ingests → FAILED row attempts climb 3 → 6 (requeued, failed again)
+#   Queues  → fast-lane + waiting/active briefly shows the requeued job
+#   Cron page → sweep-pending row → last result shows the fresh enqueued count`;
 
 function RunIt({ script }: { script: string }) {
   return (
@@ -167,14 +182,19 @@ export default function FlowsDocs() {
       />
 
       <h2>4. Cron loops — sweeper and nightly stats <Lane>CRON</Lane></h2>
-      <p>Verify the safety nets run on schedule and on demand. Everything here travels the cron lane.</p>
+      <p>Verify the safety nets run on schedule and on demand. Everything here travels the cron lane.
+        The trigger curl only answers <code>{'{"jobId":"…"}'}</code> — the proof is on the pages below.</p>
       <Diagram steps={CRON} edges={['schedule', 'catch up', 'count']} />
-      <RunIt script={RUN_CRON} />
+      <h3>Test A — aggregate-stats (auditor)</h3>
+      <RunIt script={RUN_CRON_A} />
+      <h3>Test B — sweep-pending (safety net)</h3>
+      <RunIt script={RUN_CRON_B} />
       <Checks
         items={[
-          'Terminal (or dashboard → Cron → Trigger now on aggregate-stats).',
-          'Dashboard → Logs → queue customer-cron, COMPLETED → fresh totals; Overview → Latest stats card updates; Cron page → last result updates.',
-          'Terminal (or Cron → Trigger now on sweep-pending); Logs → sweep run shows enqueued count (0 when healthy).',
+          'Test A trigger: terminal (or dashboard → Cron → Trigger now on aggregate-stats).',
+          'Test A proof: Logs → queue customer-cron, COMPLETED → aggregate-stats row with counts JSON; Overview → Latest stats updates; Cron page → last result updates (reload).',
+          'Test B setup: poison create → Ingests → FAILED, attempts 3; then trigger (terminal or Cron → Trigger now on sweep-pending).',
+          'Test B proof: Logs → sweep-pending row result {"enqueued":1}; Ingests → FAILED attempts 3 → 6; Queues → fast-lane waiting/active (brief); Cron page → fresh enqueued count.',
         ]}
       />
     </>
