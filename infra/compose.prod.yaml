@@ -108,8 +108,6 @@ services:
     networks:
       - sim-net
       - budget_default
-    profiles:
-      - tools
 
   docs-build:
     build:
@@ -119,8 +117,6 @@ services:
     container_name: sim-docs-build
     volumes:
       - docs-static:/out
-    profiles:
-      - tools
 
 networks:
   sim-net:
