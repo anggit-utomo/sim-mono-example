@@ -110,6 +110,32 @@ repeatedly — one run is enough; duplicates are harmless but noisy.
 few seconds, reload: its last result updates with fresh customer totals, and a
 new COMPLETED row appears on the Logs page.
 
+Same thing from the terminal (replace the token with `ADMIN_TOKEN` from `.env`):
+
+```bash
+# aggregate-stats: easiest to observe
+curl -X POST http://localhost:3001/admin/cron/aggregate-stats/trigger \
+  -H "Authorization: Bearer <ADMIN_TOKEN>"
+# → Logs (customer-cron + COMPLETED) gains a row; Overview Latest stats updates.
+```
+
+To see `sweep-pending` actually catch something, first create a poison row
+(it fails and ends FAILED), then fire the sweeper by hand:
+
+```bash
+curl -X POST http://localhost:3001/create-customer \
+  -H "Content-Type: application/json" -H "x-api-key: dev-key-1" \
+  -d '{"externalId":"EXT-990098","name":"__FAIL__boom","email":"boom@example.com"}'
+# wait ~30s for it to reach FAILED, then:
+curl -X POST http://localhost:3001/admin/cron/sweep-pending/trigger \
+  -H "Authorization: Bearer <ADMIN_TOKEN>"
+# → Logs shows a COMPLETED sweep-pending run; the FAILED row's attempt
+#   count climbs on Ingests as it is requeued and fails again.
+```
+
+The sweeper picks up PENDING rows older than 60s, FAILED rows with fewer
+than 10 attempts, and PROCESSING rows stale for over 10 minutes.
+
 ### 3.5 Ingests (`/ingests`)
 
 **What it is:** the inbox — every accepted request and its status. Filter by

@@ -17,6 +17,29 @@ export default function CronDocs() {
         Press Trigger now on aggregate-stats, confirm, wait a few seconds, reload: its last result
         updates with fresh customer totals, and a new COMPLETED row appears on the Logs page.
       </p>
+      <h2>Same from the terminal</h2>
+      <p>
+        Your curl calls hit the fast lane, not cron. Fire a cron job by hand with the admin token
+        (ADMIN_TOKEN from .env):
+      </p>
+      <pre>{`curl -X POST http://localhost:3001/admin/cron/aggregate-stats/trigger \\
+  -H "Authorization: Bearer <ADMIN_TOKEN>"
+# → Logs (customer-cron + COMPLETED) gains a row; Overview Latest stats updates.`}</pre>
+      <p>
+        To see sweep-pending catch something, first create a poison row (it fails and ends
+        FAILED), then trigger the sweeper (~30s later):
+      </p>
+      <pre>{`curl -X POST http://localhost:3001/create-customer \\
+  -H "Content-Type: application/json" -H "x-api-key: dev-key-1" \\
+  -d '{"externalId":"EXT-990098","name":"__FAIL__boom","email":"boom@example.com"}'
+# wait ~30s, then:
+curl -X POST http://localhost:3001/admin/cron/sweep-pending/trigger \\
+  -H "Authorization: Bearer <ADMIN_TOKEN>"
+# → COMPLETED sweep-pending run in Logs; FAILED row attempts climb in Ingests.`}</pre>
+      <p>
+        The sweeper picks up PENDING rows older than 60s, FAILED rows with fewer than 10
+        attempts, and PROCESSING rows stale for over 10 minutes.
+      </p>
       <span className="mock-label">Example view — not live data</span>
       <table>
         <thead>
