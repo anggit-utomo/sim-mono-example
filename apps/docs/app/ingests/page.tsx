@@ -1,5 +1,5 @@
 import IngestsContent from './content';
 
 export default function IngestsDocs() {
-  return <IngestsContent locale="en" />;
+  return <IngestsContent />;
 }

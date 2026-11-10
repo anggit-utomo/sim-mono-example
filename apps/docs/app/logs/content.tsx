@@ -1,13 +1,15 @@
-import { t, type Locale } from '../i18n';
+'use client';
 
-export default function LogsContent({ locale }: { locale: Locale }) {
+import { useT,  } from '../locale-hooks';
+
+export default function LogsContent() {
   return (
     <>
-      <h1>{t(locale, 'lo_h1')}</h1>
-      <p>{t(locale, 'lo_what')}</p>
-      <h2>{t(locale, 'lo_test_h')}</h2>
-      <p>{t(locale, 'lo_test')}</p>
-      <span className="mock-label">{t(locale, 'mock')}</span>
+      <h1>{useT( 'lo_h1')}</h1>
+      <p>{useT( 'lo_what')}</p>
+      <h2>{useT( 'lo_test_h')}</h2>
+      <p>{useT( 'lo_test')}</p>
+      <span className="mock-label">{useT( 'mock')}</span>
       <div className="toolbar">
         <select disabled><option>customer-fast-lane</option><option>customer-cron</option></select>
         <select disabled><option>COMPLETED</option><option>FAILED</option></select>

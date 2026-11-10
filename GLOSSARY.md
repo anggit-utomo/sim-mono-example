@@ -4,14 +4,18 @@ Operator docs, ingest API, workers, and dashboard for the sync simulator.
 
 ## Language
 
-**Route wrapper**:
-A 5-line `page.tsx` that maps one URL to a shared content component with a fixed locale.
-_Avoid_: component, translation component, duplicate page
-
 **Content component**:
-The single shared UI per docs page, rendering prose via the dictionary for whichever locale it receives.
+The single shared UI per docs page, reading the active locale from the provider.
 _Avoid_: route, page copy
 
 **Prose dictionary**:
-`apps/docs/app/i18n.ts`, the programmatic translation layer. Human prose keyed by locale; technical terms, code, and mocks stay with the components.
-_Avoid_: translation files, locale routes, machine translation
+JSON locale files (`apps/docs/app/en.json`, `apps/docs/app/id.json`). Human prose keyed by locale; technical terms, code, and mocks stay with the components.
+_Avoid_: translation module, locale routes, machine translation
+
+**Locale provider**:
+The client context holding the active locale with English default and fallback.
+_Avoid_: switcher, route prefix, language route
+
+**Toggle**:
+The ID | EN button in the nav switching the provider locale in place on the same URL.
+_Avoid_: switcher links, counterpart links, language redirect

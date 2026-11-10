@@ -1,44 +1,55 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { useContext } from 'react';
+import { LocaleCtx } from './locale-provider';
+import { useT, useTa } from './locale-hooks';
 
-const NAV: Array<[string, string]> = [
-  ['/', 'Overview'],
-  ['/customers', 'Customers'],
-  ['/queues', 'Queues'],
-  ['/cron', 'Cron'],
-  ['/ingests', 'Ingests'],
-  ['/logs', 'Logs'],
-  ['/walkthrough', 'Walkthrough'],
-  ['/troubleshooting', 'Troubleshooting'],
-  ['/flows', 'Flows'],
-  ['/architecture', 'Architecture'],
+const HREFS = [
+  '/',
+  '/customers',
+  '/queues',
+  '/cron',
+  '/ingests',
+  '/logs',
+  '/walkthrough',
+  '/troubleshooting',
+  '/flows',
+  '/architecture',
 ];
 
-function counterpart(path: string): { other: string; isId: boolean } {
-  if (path === '/id' || path.startsWith('/id/')) {
-    const rest = path === '/id' ? '/' : path.slice(3);
-    return { other: rest === '' ? '/' : rest, isId: true };
-  }
-  return { other: path === '/' ? '/id' : `/id${path}`, isId: false };
+export function LocaleToggle() {
+  const { locale, setLocale } = useContext(LocaleCtx);
+  return (
+    <span>
+      <button disabled={locale === 'id'} onClick={() => setLocale('id')}>
+        ID
+      </button>
+      {' | '}
+      <button disabled={locale === 'en'} onClick={() => setLocale('en')}>
+        EN
+      </button>
+    </span>
+  );
+}
+
+export function FooterText() {
+  return (
+    <>
+      {useT('ft_1')} <code>http://localhost:3000</code>. {useT('ft_2')} <code>docs/user-guide.md</code>.
+    </>
+  );
 }
 
 export default function DocsNav() {
-  const path = usePathname();
-  const { other, isId } = counterpart(path);
-  const href = (h: string) => (isId ? (h === '/' ? '/id' : `/id${h}`) : h);
+  const labels = useTa('nav');
   return (
     <>
-      {NAV.map(([h, label]) => (
-        <a key={h} href={href(h)}>
-          {label}
+      {HREFS.map((h, i) => (
+        <a key={h} href={h}>
+          {labels[i] ?? h}
         </a>
       ))}
-      <span>
-        {isId ? <strong>ID</strong> : <a href={other}>ID</a>}
-        {' | '}
-        {isId ? <a href={other}>EN</a> : <strong>EN</strong>}
-      </span>
+      <LocaleToggle />
     </>
   );
 }

@@ -14,11 +14,12 @@ this file is only the map.
 - API demo knob: `FAST_LANE_DELAY_MS` env (default 0) holds accepted rows in
   PENDING via BullMQ delayed jobs; ACCEPTED response + server log show the delay.
   Commits: delay knob, `delayMs` in response, walkthrough/cron drill docs.
-- Indonesian tree: `/id/*` mirrors all 10 EN routes with ID|EN switcher +
-  footer counterpart links. Refactored to dictionary i18n (`apps/docs/app/i18n.ts`,
-  one shared component per page, EN fallback). Commit `00a3993`.
+- Indonesian toggle (replaces the `/id/*` tree at user direction): one URL per
+  page, ID|EN button in nav switching a client locale provider in place;
+  prose in `apps/docs/app/en.json` + `id.json` with EN fallback, one shared
+  component per page. Prior tree commits (`ab148fd`, `00a3993`) superseded.
 - Tracker: `.scratch/phase-8-docs-app/` (spec + 5 issues), `.scratch/phase-9-docs-id/`
-  (spec + 4 issues). All tickets implemented and verified.
+  (toggle spec; 4 prior tree tickets superseded).
 - Process rule added to `AGENTS.md`: fixed ports (3000 dashboard, 3001 api,
   3002 docs), user runs `pnpm dev` manually, agents kill test servers they start
   (by port, never broad `pkill`), never mix `next dev`/`next start` without
@@ -28,9 +29,10 @@ this file is only the map.
 
 - User runs their own `pnpm dev`; do not start or kill their servers. Verify via
   `next build` (+ prerendered HTML greps) rather than live servers.
-- Known pre-existing issue: user's dev server 500s on docs `/` and `/id` (stale
+- Known pre-existing issue: user's dev server 500s on docs `/` (stale
   `.next` chunks, same class as the earlier 431.js/432.js errors). Production
-  build is green (23/23 static pages); a clean dev restart clears it.
+  build is green (13/13 static pages, EN shell prerendered, ID in client bundle);
+  a clean dev restart clears it.
 - Local `.env` (gitignored) carries `FAST_LANE_DELAY_MS=20000`. Reference env
   var names only — never print token values.
 - Answered (not implemented): BullMQ/Redis monitoring pointers, race-condition

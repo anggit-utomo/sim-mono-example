@@ -4,9 +4,11 @@
 
 **Blocked by:** 02 (Indonesian core pages), 03 (Indonesian drill pages).
 
-**Status:** ready-for-agent
+**Status:** superseded
 
 - [ ] Every Indonesian route returns success with Indonesian headings and the not-live label
 - [ ] Every switcher and counterpart link resolves to a live route in both directions
 - [ ] Every script block on Indonesian pages is byte-identical to its English counterpart
 - [ ] Verification servers are killed afterwards and ports confirmed free
+
+**Superseded:** Superseded by the single-URL toggle design: verify via toggle, not per-/id/* routes. Do not implement as written.

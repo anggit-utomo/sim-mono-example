@@ -1,19 +1,21 @@
-import { t, ta, type Locale } from '../i18n';
+'use client';
 
-export default function IngestsContent({ locale }: { locale: Locale }) {
+import { useT, useTa,  } from '../locale-hooks';
+
+export default function IngestsContent() {
   return (
     <>
-      <h1>{t(locale, 'in_h1')}</h1>
-      <p>{t(locale, 'in_what')}</p>
-      <h2>{t(locale, 'in_use_h')}</h2>
+      <h1>{useT( 'in_h1')}</h1>
+      <p>{useT( 'in_what')}</p>
+      <h2>{useT( 'in_use_h')}</h2>
       <ul>
-        {ta(locale, 'in_use').map((s, i) => (
+        {useTa( 'in_use').map((s, i) => (
           <li key={i}>{s}</li>
         ))}
       </ul>
-      <h2>{t(locale, 'in_test_h')}</h2>
-      <p>{t(locale, 'in_test')}</p>
-      <span className="mock-label">{t(locale, 'mock')}</span>
+      <h2>{useT( 'in_test_h')}</h2>
+      <p>{useT( 'in_test')}</p>
+      <span className="mock-label">{useT( 'mock')}</span>
       <div className="toolbar">
         <select disabled><option>FAILED</option><option>PENDING</option><option>DONE</option></select>
         <button disabled>Requeue all failed</button>

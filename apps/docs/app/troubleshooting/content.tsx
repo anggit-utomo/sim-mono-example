@@ -1,19 +1,22 @@
-import { t, ta, tm, type Locale } from '../i18n';
+'use client';
 
-export default function TroubleshootingContent({ locale }: { locale: Locale }) {
+import { useT, useTa, useTm,  } from '../locale-hooks';
+
+export default function TroubleshootingContent() {
   return (
     <>
-      <h1>{t(locale, 'ts_h1')}</h1>
+      <h1>{useT( 'ts_h1')}</h1>
+      <span className="mock-label">{useT('mock')}</span>
       <table>
         <thead>
           <tr>
-            {ta(locale, 'ts_th').map((h, i) => (
+            {useTa( 'ts_th').map((h, i) => (
               <th key={i}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {tm(locale, 'ts_rows').map((row, i) => (
+          {useTm( 'ts_rows').map((row, i) => (
             <tr key={i}>
               {row.map((c, j) => (
                 <td key={j}>{c}</td>
@@ -22,9 +25,9 @@ export default function TroubleshootingContent({ locale }: { locale: Locale }) {
           ))}
         </tbody>
       </table>
-      <h2>{t(locale, 'ts_demo_h')}</h2>
+      <h2>{useT( 'ts_demo_h')}</h2>
       <ul>
-        {ta(locale, 'ts_demo').map((s, i) => (
+        {useTa( 'ts_demo').map((s, i) => (
           <li key={i}>{s}</li>
         ))}
       </ul>

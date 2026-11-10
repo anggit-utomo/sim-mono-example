@@ -1,0 +1,228 @@
+{
+  "mock": "Contoh tampilan — bukan data live",
+  "ov_h1": "Ringkasan — apa itu sistem ini?",
+  "ov_intro": "Perusahaan luar mengirimi kami data pelanggan (ID, nama, email). Sistem ini menerima data tersebut, menyimpannya ke tabel pelanggan kami, dan memberi operator (Anda) layar untuk mengawasi prosesnya serta memperbaiki yang macet.",
+  "ov_flow_h": "Alur kantor pos",
+  "ov_flow": [
+    "Pengirim memasukkan surat ke kotak pos — pihak ketiga memanggil API kami.",
+    "Petugas memberi cap diterima — API menyimpan record ingest dan menjawab accepted dalam sepersekian detik. Pengirim tidak menunggu pengiriman.",
+    "Kurir langsung mengantar — worker fast-lane menulis pelanggan ke tabel pelanggan, biasanya dalam waktu kurang dari satu detik.",
+    "Setiap 2 menit penyelia memeriksa surat yang belum diambil — sweeper memasukkan kembali apa pun yang terlewat kurir.",
+    "Setiap malam auditor menghitung semuanya — aggregate-stats mencatat total untuk halaman Overview."
+  ],
+  "ov_guar_h": "Jaminan",
+  "ov_guar": [
+    {
+      "b": "Tidak ada yang hilang.",
+      "t": "Setiap request yang diterima disimpan dulu. Setiap request yang diterima berakhir sebagai DONE atau FAILED — tidak pernah hilang diam-diam."
+    },
+    {
+      "b": "Yang terbaru menang.",
+      "t": "Jika dua update untuk pelanggan yang sama berlomba, request yang lebih baru menang dan yang lama dilewati sebagai basi."
+    }
+  ],
+  "ov_words_h": "Kata-kata yang dipakai di panduan ini",
+  "ov_th": [
+    "Kata",
+    "Arti"
+  ],
+  "ov_words": [
+    [
+      "Customer",
+      "Kebenaran terkini: satu baris per externalId dengan nama dan email."
+    ],
+    [
+      "Ingest (baris inbox)",
+      "Satu request yang diterima, dengan status: PENDING, PROCESSING, DONE, FAILED."
+    ],
+    [
+      "Queue",
+      "Antrean job. customer-fast-lane = kirim sekarang, customer-cron = kerja terjadwal."
+    ],
+    [
+      "Job",
+      "Satu unit kerja dalam antrean (misalnya: proses satu baris ingest)."
+    ],
+    [
+      "Cron",
+      "Kerja terjadwal: sweeper tiap 2 menit dan stats tiap malam."
+    ],
+    [
+      "Job run (log)",
+      "Riwayat yang mencatat job selesai atau gagal, beserta lamanya."
+    ]
+  ],
+  "ov_run_h": "Berjalan lokal",
+  "ov_run_1": "menjalankan semuanya. Port tetap: dashboard di",
+  "ov_run_2": ", API di",
+  "ov_run_3": ", app docs ini di",
+  "ov_run_4": ".",
+  "ov_health_h": "Layar kesehatan",
+  "ov_health": "Buka Overview asli terlebih dahulu setiap kali ada yang terasa salah. Jika PENDING atau FAILED bertambah, buka Ingests. Jika job failed bertambah, buka Queues. Jika kartu bertuliskan unavailable (Redis down?), sistem antrean tidak terjangkau — kartu inbox tetap berfungsi.",
+  "cu_h1": "Customers — tabel pelanggan",
+  "cu_what": "Apa itu: kebenaran yang dijaga seluruh sistem. Diawali dengan 300.000 baris demo (EXT-000001 …). 50 baris per halaman agar tetap cepat.",
+  "cu_use_h": "Cara pakai",
+  "cu_use": "Ketik ID pelanggan yang persis (misalnya EXT-000001) atau awal email (misalnya eloise) lalu tekan Search. Pindah halaman dengan Prev/Next.",
+  "cu_test_h": "Cara menguji",
+  "cu_ph": "EXT-000001 atau awalan email",
+  "cu_test": [
+    "Cari EXT-000001 → tepat 1 baris.",
+    "Cari awalan email yang pendek → daftar hasil.",
+    "Buka halaman 2 → 50 baris yang berbeda."
+  ],
+  "qu_h1": "Queues — antrean",
+  "qu_what": "Apa itu: antrean, dua jalur. Pilih lane (fast-lane atau cron) dan job state (waiting, active, delayed, completed, failed) lalu telusuri job-nya. Setiap baris menunjukkan job id, nama, berapa kali percobaan, dan — untuk job gagal — alasan gagalnya.",
+  "qu_use_h": "Cara pakai",
+  "qu_use": "Saat Overview menunjukkan job gagal, pilih fast-lane + failed, baca failedReason, perbaiki penyebabnya, lalu tekan Retry pada job itu. Retry hanya jalan selama job masih tersimpan; jika jawabannya not found, job sudah kedaluwarsa dan sebaiknya requeue baris inbox dari Ingests saja.",
+  "qu_test_h": "Cara menguji",
+  "qu_test": "Buat customer bernama __FAIL__boom lewat API (racun sengaja untuk latihan). Dalam ~10 detik ia muncul di failed dengan alasan injected fault. Tekan Retry → ia jalan lagi dan gagal lagi, membuktikan retry dieksekusi.",
+  "cr_h1": "Cron — jadwal",
+  "cr_what": "Apa itu: dua jadwal — sweep-pending (tiap 2 menit) dan aggregate-stats (tiap malam 02:00) — beserta pattern, timezone, dan hasil run terakhirnya.",
+  "cr_use_h": "Cara pakai",
+  "cr_use": "Tekan Trigger now (Anda dapat dialog konfirmasi) untuk menjalankan jadwal segera tanpa menunggu. Pakai setelah outage: trigger sweep-pending dan lihat baris PENDING diambil. Jangan trigger berulang — sekali cukup; duplikat tidak berbahaya tapi berisik.",
+  "cr_test_h": "Cara menguji",
+  "cr_test": "Tekan Trigger now pada aggregate-stats, konfirmasi, tunggu beberapa detik, reload: hasil terakhirnya update dengan total customer terbaru, dan baris COMPLETED baru muncul di halaman Logs.",
+  "in_h1": "Ingests — inbox",
+  "in_what": "Apa itu: inbox — setiap request yang diterima beserta statusnya. Filter menurut status. Setiap baris menunjukkan ID pelanggan, apakah CREATE atau UPDATE, jumlah percobaan, dan teks error saat gagal.",
+  "in_use_h": "Cara pakai (alat recovery utama)",
+  "in_use": [
+    "Satu baris macet → Requeue mengirimnya kembali ke fast lane.",
+    "Banyak baris gagal → Requeue all failed mengirim semua baris FAILED yang masih bisa diselamatkan sekaligus.",
+    "Requeue baris DONE itu aman: worker melihatnya sudah done dan melewatinya."
+  ],
+  "in_test_h": "Cara menguji",
+  "in_test": "Filter FAILED → temukan baris __FAIL__boom dengan teks errornya. Tekan Requeue → ia jalan lagi (dan gagal lagi sampai penyebabnya diperbaiki, memang itu gunanya: loop-nya terlihat dan terkendali). Halaman ini tetap jalan walau Redis mati.",
+  "lo_h1": "Logs — riwayat",
+  "lo_what": "Apa itu: riwayat semua yang dikerjakan worker — antrean mana, job apa, COMPLETED atau FAILED, berapa percobaan, durasi, error, dan waktu selesai. Filter menurut queue dan status. Read-only: tidak ada yang bisa diklik untuk mengubah apa pun, jadi aman untuk audit.",
+  "lo_test_h": "Cara menguji",
+  "lo_test": "Trigger cron job, requeue baris, atau retry job, lalu filter Logs — baris yang cocok muncul dalam hitungan detik. Filter customer-fast-lane + FAILED untuk melihat semua percobaan pengiriman yang gagal.",
+  "wt_h1": "Panduan — jalur bahagia",
+  "wt_steps": [
+    "Kirim customer lewat API (ganti ID untuk mengulang): POST /create-customer dengan externalId EXT-990001, nama Ada, email ada@example.com dan header x-api-key dev-key-1. Anda dapat ingestId, status ACCEPTED, dan delayMs.",
+    "Buka Ingests, filter PENDING — baris Anda muncul, lalu berubah DONE dalam sedetik (atau setelah delay yang dikonfigurasi — lihat tips di bawah).",
+    "Buka Customers, cari EXT-990001 — Ada ada di sana.",
+    "Kirim update untuk ID yang sama dengan nama baru. Customers menunjukkan satu baris dengan nama baru — yang terbaru menang.",
+    "Buka Logs — satu run COMPLETED untuk ingest Anda."
+  ],
+  "wt_try_h": "Coba — curl siap salin-tempel",
+  "wt_tip_1": "Tips training: set",
+  "wt_tip_2": "di",
+  "wt_tip_3": "lalu restart API agar baris baru tertahan di PENDING 20 detik, sehingga sempat terlihat di halaman Ingests. Default",
+  "wt_tip_4": "langsung terkirim.",
+  "wt_resp": "Responsnya (delayMs mengikuti FAST_LANE_DELAY_MS; konsol API juga mencatatnya):",
+  "ts_h1": "Pemecahan masalah — saat ada yang salah",
+  "ts_th": [
+    "Gejala",
+    "Artinya",
+    "Yang dilakukan"
+  ],
+  "ts_rows": [
+    [
+      "Baris PENDING bertambah",
+      "Worker berhenti atau Redis mati",
+      "Jalankan worker / Redis; sweeper mengejar otomatis. Trigger sweep-pending dari Cron untuk mempercepat."
+    ],
+    [
+      "Baris FAILED",
+      "Payload atau kesalahan sistem",
+      "Baca lastError di Ingests; perbaiki penyebabnya; Requeue."
+    ],
+    [
+      "Kartu queue unavailable",
+      "Redis tidak terjangkau",
+      "API ingest tetap menerima; halaman inbox tetap jalan; restart Redis, lalu trigger sweeper."
+    ],
+    [
+      "Retry menjawab not found",
+      "Job kedaluwarsa dari Redis",
+      "Requeue baris inbox dari Ingests saja."
+    ],
+    [
+      "Update ganda, data lama yang tampil",
+      "Race (keterbatasan yang diketahui)",
+      "Kirim ulang update yang lebih baru; tulisan terbaru menang saat diproses ulang."
+    ]
+  ],
+  "ts_demo_h": "Data demo dan key (hanya untuk latihan)",
+  "ts_demo": [
+    "Header key API: x-api-key: dev-key-1. Panggilan dashboard admin pakai token server-side — Anda tidak perlu mengetiknya.",
+    "Customer bawaan: EXT-000001 … EXT-300000.",
+    "Nama racun untuk drill kegagalan: nama apa pun yang diawali __FAIL__."
+  ],
+  "fl_h1": "Alur — graf sistem untuk skenario pengujian",
+  "fl_intro_a": "Empat jalur end-to-end. Setiap alur punya graf plus skrip siap salin: jalankan skrip di terminal (root repo) dan saksikan tiap langkah mendarat di halaman dashboard yang disebut di bawah node. Ganti EXT- ID dengan yang baru setiap mengulang. Panggilan admin butuh ADMIN_TOKEN dari",
+  "fl_intro_b": "; baris pertama tiap skrip memuatnya untuk Anda.",
+  "fl_s1_h": "1. Jalur bahagia — create sampai DONE",
+  "fl_s1_p": "Drill pertama setiap operator baru.",
+  "fl_s2_h": "2. Demo tertunda — tahan PENDING dengan FAST_LANE_DELAY_MS",
+  "fl_s2_p": "Perlambat sistem agar baris sempat terlihat di layar inbox.",
+  "fl_s3_h": "3. Kegagalan dan recovery — drill baris racun",
+  "fl_s3_p": "Requeue memutar ulang payload yang sama, jadi nama racun gagal lagi — loop-nya adalah drill-nya. Recovery yang sebenarnya adalah ingest baru dengan data yang diperbaiki. (Langkah sweeper opsional lewat jalur cron.)",
+  "fl_s4_h": "4. Loop cron — sweeper dan stats malam",
+  "fl_s4_pa": "Verifikasi jaring pengaman jalan sesuai jadwal dan on demand. Semua di jalur cron. Curl trigger hanya menjawab",
+  "fl_s4_pb": "— buktinya ada di halaman-halaman di bawah.",
+  "fl_ta_h": "Test A — aggregate-stats (auditor)",
+  "fl_tb_h": "Test B — sweep-pending (jaring pengaman)",
+  "fl_check": "Di mana memeriksa (dashboard :3000)",
+  "fl_c1": [
+    "Terminal: respons menampilkan ingestId, \"ACCEPTED\", delayMs. Konsol API mencatat baris accept.",
+    "Dashboard → Ingests → Status = PENDING → baris EXT- Anda, attempts 0.",
+    "Dashboard → Queues → lane fast-lane, state waiting (lalu active) → job ingest-<id>-0.",
+    "Dashboard → Ingests → Status = DONE; Customers → cari ID; Logs → queue customer-fast-lane, COMPLETED."
+  ],
+  "fl_c2": [
+    "Terminal/.env: set FAST_LANE_DELAY_MS=20000, restart API (Ctrl+C, pnpm dev).",
+    "Terminal: respons menampilkan \"delayMs\": 20000; konsol API mencatat delay=20s.",
+    "Dashboard → Queues → lane fast-lane, state delayed → job Anda; Ingests → PENDING. Kartu fast-lane Overview menunjukkan delayed: 1.",
+    "Dashboard → Ingests → DONE; delayed kembali 0; Logs → run COMPLETED."
+  ],
+  "fl_c3": [
+    "Terminal: create racun diterima.",
+    "Dashboard → Ingests → Status = FAILED → lastError \"injected fault\", attempts 3. Queues → lane fast-lane, state failed.",
+    "Dashboard → Ingests → baris yang sama, attempts 6, tetap FAILED. Queues → failed lagi.",
+    "Terminal: update-customer dengan nama yang benar (ingest baru).",
+    "Dashboard → Customers → cari ID menunjukkan nama yang diperbaiki; Ingests → DONE pada baris baru (baris racun tetap FAILED sebagai riwayat); Logs → COMPLETED."
+  ],
+  "fl_c4": [
+    "Trigger Test A: terminal (atau dashboard → Cron → Trigger now pada aggregate-stats).",
+    "Bukti Test A: Logs → queue customer-cron, COMPLETED → baris aggregate-stats dengan JSON count; Overview → Latest stats update; halaman Cron → last result update (reload).",
+    "Setup Test B: create racun → Ingests → FAILED, attempts 3; lalu trigger (terminal atau Cron → Trigger now pada sweep-pending).",
+    "Bukti Test B: Logs → baris sweep-pending hasil {\"enqueued\":1}; Ingests → FAILED attempts 3 → 6; Queues → fast-lane waiting/active (sekilas); halaman Cron → count enqueued terbaru."
+  ],
+  "ar_h1": "Arsitektur — seluruh sistem, satu halaman",
+  "ar_intro": "Diamond adalah keputusan (ikuti edge ya/tidak). Setiap kotak menyebut fungsi, query, dan set yang persis di bawahnya. Lihat",
+  "ar_intro_link": "Flows",
+  "ar_intro_end": "untuk drill salin-tempel tiap jalur.",
+  "ar_map_h": "Peta — layanan sekilas",
+  "ar_s1_h": "1 · Accept — controller ke inbox",
+  "ar_s2_h": "2 · Process — delivery worker, semua cabang",
+  "ar_s3_h": "3 · Sweep — selamatkan baris macet",
+  "ar_s4_h": "4 · Stats — count malam",
+  "ar_ctrl_h": "Peta controller — endpoint → fungsi → query / set",
+  "ar_ctrl_th": [
+    "Endpoint",
+    "Fungsi",
+    "Query / set"
+  ],
+  "ar_inv_h": "Inventaris layanan",
+  "ar_inv_th": [
+    "Layanan",
+    "Teknologi",
+    "Port",
+    "Peran"
+  ],
+  "nav": [
+    "Ringkasan",
+    "Customers",
+    "Queues",
+    "Cron",
+    "Ingests",
+    "Logs",
+    "Panduan",
+    "Pemecahan masalah",
+    "Alur",
+    "Arsitektur"
+  ],
+  "ft_1": "Contoh tampilan — bukan data live. Dashboard asli:",
+  "ft_2": "Sumber kanonik:"
+}

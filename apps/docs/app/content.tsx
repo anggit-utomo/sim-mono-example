@@ -1,35 +1,37 @@
-import { t, ta, tm, tp, type Locale } from './i18n';
+'use client';
 
-export default function OverviewContent({ locale }: { locale: Locale }) {
+import { useT, useTa, useTm, useTp,  } from './locale-hooks';
+
+export default function OverviewContent() {
   return (
     <>
-      <h1>{t(locale, 'ov_h1')}</h1>
-      <p>{t(locale, 'ov_intro')}</p>
-      <h2>{t(locale, 'ov_flow_h')}</h2>
+      <h1>{useT( 'ov_h1')}</h1>
+      <p>{useT( 'ov_intro')}</p>
+      <h2>{useT( 'ov_flow_h')}</h2>
       <ol>
-        {ta(locale, 'ov_flow').map((s, i) => (
+        {useTa( 'ov_flow').map((s, i) => (
           <li key={i}>{s}</li>
         ))}
       </ol>
-      <h2>{t(locale, 'ov_guar_h')}</h2>
+      <h2>{useT( 'ov_guar_h')}</h2>
       <ul>
-        {tp(locale, 'ov_guar').map((g, i) => (
+        {useTp( 'ov_guar').map((g, i) => (
           <li key={i}>
             <strong>{g.b}</strong> {g.t}
           </li>
         ))}
       </ul>
-      <h2>{t(locale, 'ov_words_h')}</h2>
+      <h2>{useT( 'ov_words_h')}</h2>
       <table>
         <thead>
           <tr>
-            {ta(locale, 'ov_th').map((h, i) => (
+            {useTa( 'ov_th').map((h, i) => (
               <th key={i}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {tm(locale, 'ov_words').map((row, i) => (
+          {useTm( 'ov_words').map((row, i) => (
             <tr key={i}>
               {row.map((c, j) => (
                 <td key={j}>{c}</td>
@@ -39,16 +41,16 @@ export default function OverviewContent({ locale }: { locale: Locale }) {
         </tbody>
       </table>
 
-      <h2>{t(locale, 'ov_run_h')}</h2>
+      <h2>{useT( 'ov_run_h')}</h2>
       <p>
-        <code>pnpm dev</code> {t(locale, 'ov_run_1')} <code>3000</code>
-        {t(locale, 'ov_run_2')} <code>3001</code>
-        {t(locale, 'ov_run_3')} <code>3002</code>
-        {t(locale, 'ov_run_4')}
+        <code>pnpm dev</code> {useT( 'ov_run_1')} <code>3000</code>
+        {useT( 'ov_run_2')} <code>3001</code>
+        {useT( 'ov_run_3')} <code>3002</code>
+        {useT( 'ov_run_4')}
       </p>
-      <h2>{t(locale, 'ov_health_h')}</h2>
-      <p>{t(locale, 'ov_health')}</p>
-      <span className="mock-label">{t(locale, 'mock')}</span>
+      <h2>{useT( 'ov_health_h')}</h2>
+      <p>{useT( 'ov_health')}</p>
+      <span className="mock-label">{useT( 'mock')}</span>
       <div className="cards">
         <div className="card">
           <h3>Fast lane</h3>

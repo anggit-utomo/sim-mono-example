@@ -1,21 +1,23 @@
-import { t, ta, type Locale } from '../i18n';
+'use client';
 
-export default function CustomersContent({ locale }: { locale: Locale }) {
+import { useT, useTa,  } from '../locale-hooks';
+
+export default function CustomersContent() {
   return (
     <>
-      <h1>{t(locale, 'cu_h1')}</h1>
-      <p>{t(locale, 'cu_what')}</p>
-      <h2>{t(locale, 'cu_use_h')}</h2>
-      <p>{t(locale, 'cu_use')}</p>
-      <h2>{t(locale, 'cu_test_h')}</h2>
+      <h1>{useT( 'cu_h1')}</h1>
+      <p>{useT( 'cu_what')}</p>
+      <h2>{useT( 'cu_use_h')}</h2>
+      <p>{useT( 'cu_use')}</p>
+      <h2>{useT( 'cu_test_h')}</h2>
       <ul>
-        {ta(locale, 'cu_test').map((s, i) => (
+        {useTa( 'cu_test').map((s, i) => (
           <li key={i}>{s}</li>
         ))}
       </ul>
-      <span className="mock-label">{t(locale, 'mock')}</span>
+      <span className="mock-label">{useT( 'mock')}</span>
       <div className="toolbar">
-        <input placeholder={t(locale, 'cu_ph')} disabled />
+        <input placeholder={useT( 'cu_ph')} disabled />
         <button disabled>Search</button>
         <button disabled>Prev</button>
         <button disabled>Next</button>
