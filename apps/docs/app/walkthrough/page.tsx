@@ -1,4 +1,4 @@
-import CopyButton from './copy-button';
+import CopyButton from '../copy-button';
 
 const CURL = `curl -X POST http://localhost:3001/create-customer \\
   -H "Content-Type: application/json" \\
