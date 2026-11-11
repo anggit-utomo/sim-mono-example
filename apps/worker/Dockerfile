@@ -15,7 +15,7 @@ COPY . .
 RUN pnpm --filter @sim/db exec prisma generate && pnpm --filter @sim/db --filter @sim/shared build && pnpm --filter @sim/worker build
 
 FROM docker.io/library/node:24-slim AS runtime
-WORKDIR /repo
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 COPY --from=build /repo/node_modules ./node_modules
 COPY --from=build /repo/apps/worker/node_modules ./apps/worker/node_modules
 COPY --from=build /repo/apps/worker/dist ./apps/worker/dist
