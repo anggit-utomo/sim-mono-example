@@ -6,3 +6,4 @@ dist
 sim-example
 .env
 *.tsbuildinfo
+out

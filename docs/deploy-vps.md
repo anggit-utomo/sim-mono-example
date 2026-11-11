@@ -145,6 +145,10 @@ the edge while others work is a missing DNS A record, not compose.
 `migrate` exiting non-zero is `DATABASE_URL`/auth — fix the env and
 rerun `podman-compose -f infra/compose.prod.yaml run --rm migrate`
 before starting api/worker.
+`no space left on device` during build (parallel `pnpm install` layers
+filling `/var/tmp` on the 2 GB box): `podman system prune -af`,
+`df -h /var/tmp` to confirm, then `./deploy.sh` again — builds are
+sequential since the prune-first fix, one image at a time.
 
 ## Useful commands
 

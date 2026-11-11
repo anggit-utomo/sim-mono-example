@@ -7,7 +7,12 @@ cd "$(dirname "$0")"
 COMPOSE="podman-compose -f infra/compose.prod.yaml"
 
 git pull --ff-only
-$COMPOSE build
+
+# free buildah temp + stale layers first: 2 GB box OOMs/disks-out on
+# parallel multi-arch pnpm installs otherwise (builds are sequential below)
+podman image prune -af --filter "dangling=true" >/dev/null 2>&1 || true
+podman system prune -f >/dev/null 2>&1 || true
+$COMPOSE build api && $COMPOSE build worker && $COMPOSE build dashboard && $COMPOSE build docs-build
 
 # stateful deps first, then one-shot static docs + migrations
 # (migrate reuses the api image, so build must come first)
