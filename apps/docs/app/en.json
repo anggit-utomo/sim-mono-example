@@ -76,6 +76,22 @@
   "qu_use": "When the Overview shows failed jobs, select fast-lane + failed, read the failedReason, fix the underlying cause, then press Retry on the job. Retry only works while the job is still stored; if it says not found, the job aged out and you should requeue the inbox row from Ingests instead.",
   "qu_test_h": "How to test it",
   "qu_test": "Create a customer with name __FAIL__boom through the API (a deliberate poison used for training). Within ~10 seconds it appears under failed with reason injected fault. Press Retry → it runs again and fails again, proving retries execute.",
+  "qu_push_h": "Where jobs come from (no HTTP to the worker)",
+  "qu_push": "Nobody calls the worker over HTTP. The API pushes with queue.add() and the worker's @Processor picks the job up. The contract is three things: the same queue-name string, the same Redis host/port, and .add() on one side with process() on the other. BullModule.forRoot plus registerQueue alone only open the Redis connection — without a producer and a processor, nothing ever moves.",
+  "qu_push_steps": [
+    "Wire it: BullModule.forRoot({ connection: redisConnection() }) opens Redis; BullModule.registerQueue({ name }) hands out a queue handle. Both processes do this: apps/api/src/api.module.ts and apps/worker/src/worker.module.ts, with the names shared from packages/shared/src/index.ts.",
+    "Push it: CustomersService.accept stores the PENDING inbox row first, then calls fastLane.add('process-ingest', { ingestId }, { ...FAST_LANE_JOB_OPTS, jobId }) — apps/api/src/customers/customers.service.ts:43-47. The add is raced against a 3s timeout because BullMQ buffers instead of throwing when Redis is down.",
+    "Consume it: @Processor('customer-fast-lane') plus process(job) in apps/worker/src/fast-lane.processor.ts:13-25. Attempts and backoff come from FAST_LANE_JOB_OPTS (attempts 3, exponential backoff 2s).",
+    "Fresh NestJS checklist: npm i @nestjs/bullmq bullmq, forRoot + registerQueue in the module, an InjectQueue(...).add(jobName, data, opts) producer, and a @Processor(name) class extending WorkerHost with process(job). If producer and consumer live in different processes, both need forRoot + registerQueue pointed at the same Redis."
+  ],
+  "qu_redis": "Redis down stalls both lanes: the queues are Redis keys (bull:customer-fast-lane:*), so .add() buffers and process() never fires. The API still returns 202 ACCEPTED — the PENDING row is already in Postgres — the inbox pages keep working, and the sweeper re-enqueues missed rows once Redis returns.",
+  "cr_sched_h": "Who creates the schedules (the worker itself)",
+  "cr_sched": "The two cron rows are not seeded data. SchedulerService registers them with upsertJobScheduler on every worker boot — idempotent, so restarts never duplicate them — and the CronProcessor consumes them on the customer-cron lane.",
+  "cr_sched_steps": [
+    "Register: apps/worker/src/scheduler.service.ts:16-27 — upsertJobScheduler('sweep-pending', { pattern: '*/2 * * * *' }) and upsertJobScheduler('aggregate-stats', { pattern: '0 2 * * *' }).",
+    "Run: @Processor('customer-cron') plus process(job) in apps/worker/src/cron.processor.ts:28-44 switches on job.name — sweepPending() re-enqueues stuck rows with fastLane.addBulk, aggregateStats() writes the nightly counts.",
+    "Trigger now skips the wait: the dashboard calls the admin trigger endpoint (same job name, run immediately) — the proof still lands on Logs and the Cron page, never in the trigger response beyond a job id."
+  ],
   "cr_h1": "Cron — the schedules",
   "cr_what": "What it is: the two schedules — sweep-pending (every 2 minutes) and aggregate-stats (nightly 02:00) — with their pattern, timezone, and the result of their last run.",
   "cr_use_h": "How to use it",

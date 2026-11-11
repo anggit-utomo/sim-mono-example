@@ -1,6 +1,6 @@
 'use client';
 
-import { useT,  } from '../locale-hooks';
+import { useT, useTa } from '../locale-hooks';
 
 export default function CronContent() {
   return (
@@ -11,6 +11,13 @@ export default function CronContent() {
       <p>{useT( 'cr_use')}</p>
       <h2>{useT( 'cr_test_h')}</h2>
       <p>{useT( 'cr_test')}</p>
+      <h2>{useT( 'cr_sched_h')}</h2>
+      <p>{useT( 'cr_sched')}</p>
+      <ol>
+        {useTa( 'cr_sched_steps').map((s, i) => (
+          <li key={i}>{s}</li>
+        ))}
+      </ol>
       <span className="mock-label">{useT( 'mock')}</span>
       <table>
         <thead>

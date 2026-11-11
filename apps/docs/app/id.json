@@ -76,6 +76,22 @@
   "qu_use": "Saat Overview menunjukkan job gagal, pilih fast-lane + failed, baca failedReason, perbaiki penyebabnya, lalu tekan Retry pada job itu. Retry hanya jalan selama job masih tersimpan; jika jawabannya not found, job sudah kedaluwarsa dan sebaiknya requeue baris inbox dari Ingests saja.",
   "qu_test_h": "Cara menguji",
   "qu_test": "Buat customer bernama __FAIL__boom lewat API (racun sengaja untuk latihan). Dalam ~10 detik ia muncul di failed dengan alasan injected fault. Tekan Retry → ia jalan lagi dan gagal lagi, membuktikan retry dieksekusi.",
+  "qu_push_h": "Dari mana job berasal (tanpa HTTP ke worker)",
+  "qu_push": "Tidak ada yang memanggil worker lewat HTTP. API mendorong dengan queue.add() dan @Processor milik worker mengambil job-nya. Kontraknya tiga hal: string nama queue yang sama, host/port Redis yang sama, dan .add() di satu sisi dengan process() di sisi lain. BullModule.forRoot plus registerQueue saja hanya membuka koneksi Redis — tanpa producer dan processor, tidak ada yang bergerak.",
+  "qu_push_steps": [
+    "Sambungkan: BullModule.forRoot({ connection: redisConnection() }) membuka Redis; BullModule.registerQueue({ name }) memberi handle queue. Kedua proses melakukan ini: apps/api/src/api.module.ts dan apps/worker/src/worker.module.ts, dengan nama yang dipakai bersama dari packages/shared/src/index.ts.",
+    "Dorong: CustomersService.accept menyimpan baris inbox PENDING dulu, lalu memanggil fastLane.add('process-ingest', { ingestId }, { ...FAST_LANE_JOB_OPTS, jobId }) — apps/api/src/customers/customers.service.ts:43-47. add dilombakan dengan timeout 3 detik karena BullMQ menahan perintah alih-alih throw saat Redis mati.",
+    "Konsumsi: @Processor('customer-fast-lane') plus process(job) di apps/worker/src/fast-lane.processor.ts:13-25. Attempts dan backoff berasal dari FAST_LANE_JOB_OPTS (3 percobaan, backoff eksponensial 2 detik).",
+    "Checklist NestJS baru: npm i @nestjs/bullmq bullmq, forRoot + registerQueue di module, producer InjectQueue(...).add(jobName, data, opts), dan class @Processor(name) yang extends WorkerHost dengan process(job). Jika producer dan consumer beda proses, keduanya butuh forRoot + registerQueue ke Redis yang sama."
+  ],
+  "qu_redis": "Redis mati membuat kedua jalur berhenti: queue adalah key Redis (bull:customer-fast-lane:*), jadi .add() tertahan dan process() tidak pernah jalan. API tetap menjawab 202 ACCEPTED — baris PENDING sudah ada di Postgres — halaman inbox tetap jalan, dan sweeper mengejar baris yang terlewat setelah Redis kembali.",
+  "cr_sched_h": "Siapa yang membuat jadwal (worker itu sendiri)",
+  "cr_sched": "Dua baris cron bukan data seed. SchedulerService mendaftarkannya dengan upsertJobScheduler setiap worker boot — idempoten, jadi restart tidak pernah menggandakannya — dan CronProcessor mengonsumsinya di lane customer-cron.",
+  "cr_sched_steps": [
+    "Daftar: apps/worker/src/scheduler.service.ts:16-27 — upsertJobScheduler('sweep-pending', { pattern: '*/2 * * * *' }) dan upsertJobScheduler('aggregate-stats', { pattern: '0 2 * * *' }).",
+    "Jalan: @Processor('customer-cron') plus process(job) di apps/worker/src/cron.processor.ts:28-44 memilih menurut job.name — sweepPending() memasukkan ulang baris macet dengan fastLane.addBulk, aggregateStats() menulis count malam.",
+    "Trigger now melewati tunggu: dashboard memanggil endpoint trigger admin (nama job sama, langsung jalan) — buktinya tetap di Logs dan halaman Cron, bukan di respons trigger selain job id."
+  ],
   "cr_h1": "Cron — jadwal",
   "cr_what": "Apa itu: dua jadwal — sweep-pending (tiap 2 menit) dan aggregate-stats (tiap malam 02:00) — beserta pattern, timezone, dan hasil run terakhirnya.",
   "cr_use_h": "Cara pakai",

@@ -1,6 +1,6 @@
 'use client';
 
-import { useT,  } from '../locale-hooks';
+import { useT, useTa } from '../locale-hooks';
 
 export default function QueuesContent() {
   return (
@@ -11,6 +11,14 @@ export default function QueuesContent() {
       <p>{useT( 'qu_use')}</p>
       <h2>{useT( 'qu_test_h')}</h2>
       <p>{useT( 'qu_test')}</p>
+      <h2>{useT( 'qu_push_h')}</h2>
+      <p>{useT( 'qu_push')}</p>
+      <ol>
+        {useTa( 'qu_push_steps').map((s, i) => (
+          <li key={i}>{s}</li>
+        ))}
+      </ol>
+      <p>{useT( 'qu_redis')}</p>
       <span className="mock-label">{useT( 'mock')}</span>
       <div className="toolbar">
         <select disabled><option>fast-lane</option><option>cron</option></select>
