@@ -50,7 +50,7 @@ Components: 3rd-party client, API (NestJS), Redis (BullMQ queues and schedulers)
 Flow A - fast lane:
 
 1. The caller sends POST /create-customer or /update-customer.
-2. The API validates, saves a CustomerIngest row with status PENDING, adds a job to the fast-lane queue and returns 202 with the ingestId.
+2. The API validates each row, saves one CustomerIngest row per item with status PENDING (single bulk write), adds one job per row to the fast-lane queue (single addBulk) and returns 202 with count plus items [{ ingestId, externalId }].
 3. The fast-lane worker picks the job up immediately, upserts the Customer and marks the row DONE.
 4. After retries are exhausted, the row is marked FAILED.
 
@@ -90,8 +90,8 @@ JobRun (history for the dashboard logs page): id, queue, jobName, jobId, status 
 
 ### 6.1 Public (3rd party), protected by x-api-key
 
-- POST /create-customer and POST /update-customer. Body: externalId (non-empty string), name (non-empty string), email (valid email). Unknown fields are rejected.
-- 202 response: ingestId and status ACCEPTED. 400 for validation errors. 401 for a missing or invalid key.
+- POST /create-customer and POST /update-customer. Body: a single object, a raw array, or `{ items: [...] }` (1-100 rows); each row: externalId (non-empty string), name (non-empty string), email (valid email). Unknown fields are rejected.
+- 202 response: `{ status: ACCEPTED, delayMs, count, items: [{ ingestId, externalId }] }` — one entry per row. 400 for validation errors. 401 for a missing or invalid key.
 - If the queue is unavailable the API must still return 202, because the inbox row exists. It logs the error and the sweeper recovers the row.
 
 ### 6.2 Admin (dashboard), protected by bearer ADMIN\_TOKEN

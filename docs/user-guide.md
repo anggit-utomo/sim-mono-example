@@ -125,7 +125,7 @@ To see `sweep-pending` actually catch something, first create a poison row
 ```bash
 curl -X POST http://localhost:3001/create-customer \
   -H "Content-Type: application/json" -H "x-api-key: dev-key-1" \
-  -d '{"externalId":"EXT-990098","name":"__FAIL__boom","email":"boom@example.com"}'
+  -d '[{"externalId":"EXT-990098","name":"__FAIL__boom","email":"boom@example.com"}]'
 # wait ~30s for it to reach FAILED, then:
 curl -X POST http://localhost:3001/admin/cron/sweep-pending/trigger \
   -H "Authorization: Bearer <ADMIN_TOKEN>"
@@ -169,9 +169,10 @@ filter Logs — a matching row appears within seconds. Filter
 
 ## 4. End-to-end walkthrough (the happy path)
 
-1. Send a customer through the API (replace the ID to repeat):
-   `POST /create-customer` with `{"externalId":"EXT-990001","name":"Ada","email":"ada@example.com"}`
-   and header `x-api-key: dev-key-1`. You get `{"ingestId":"…","status":"ACCEPTED"}`.
+1. Send customers through the API (replace the ID to repeat):
+   `POST /create-customer` with `[{"externalId":"EXT-990001","name":"Ada","email":"ada@example.com"}]`
+   and header `x-api-key: dev-key-1`. A single object or `{"items":[...]}` works too
+   (max 100 rows). You get `{"status":"ACCEPTED","count":1,"items":[{"ingestId":"…","externalId":"EXT-990001"}]}`.
 2. Open **Ingests**, filter PENDING — your row appears, then flips to DONE
    within about a second.
    (Training tip: set `FAST_LANE_DELAY_MS=20000` in `.env` and restart the

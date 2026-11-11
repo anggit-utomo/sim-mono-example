@@ -27,11 +27,11 @@ Nothing calls the worker. The coupling is two Redis queues
 
 - **API** (`apps/api/src/api.module.ts`) registers the queues as producer
   only — zero processors (stated in a code comment). `POST /create-customer`
-  → `CustomersController` → `CustomersService.accept`
-  (`apps/api/src/customers/customers.service.ts:32-59`): stores a
-  `customerIngest` PENDING row first, then `fastLane.add(...)` with a 3s
-  timeout. Redis down → still returns `202 ACCEPTED`; the row waits for
-  the sweeper.
+  → `CustomersController` → `CustomersService.acceptMany`
+  (`apps/api/src/customers/customers.service.ts:32-70`): one bulk `createManyAndReturn`
+  of PENDING rows, then one `addBulk` (3s race). Body accepts a single object,
+  a raw array, or `{ items }` (1–100 rows); response is `{ status ACCEPTED, count, items[] }`.
+  Redis down → still returns `202 ACCEPTED`; rows wait for the sweeper.
 - **Dashboard** never touches the worker. It reads queue/inbox state via
   API admin endpoints; queue cards going "unavailable" means Redis is
   unreachable, not that the worker has an endpoint.
@@ -51,10 +51,10 @@ sequenceDiagram
   participant PG as postgres :5432
   participant R as redis fast-lane :6379
   participant W as worker (no port)
-  C->>A: 1 POST /create-customer<br/>(controller + ApiKeyGuard + DTO)
-  A->>PG: 2 customerIngest.create<br/>PENDING, attempts 0
-  A->>R: 3 fastLane.add(process-ingest, {ingestId})<br/>jobId ingest-id-0, +delay if set
-  A-->>C: 4 202 ACCEPTED {ingestId, delayMs}
+  C->>A: 1 POST /create-customer<br/>(controller + ApiKeyGuard + DTO × N)
+  A->>PG: 2 createManyAndReturn N rows<br/>PENDING, attempts 0
+  A->>R: 3 addBulk N process-ingest jobs<br/>jobId ingest-id-0, +delay if set
+  A-->>C: 4 202 ACCEPTED {count, items, delayMs}
   R->>W: 5 deliver job (or after delay)
   W->>PG: 6 load inbox row<br/>skip if missing / already DONE
   W->>PG: 7 update → PROCESSING, attempts +1
@@ -66,10 +66,10 @@ Step → file → table:
 
 | Step | File | Table write |
 | --- | --- | --- |
-| 1. Guard + validate | `apps/api/src/customers/customers.controller.ts`, `apps/api/src/auth/api-key.guard.ts` | — (401 before anything is stored) |
-| 2. Store inbox PENDING | `apps/api/src/customers/customers.service.ts:34-36` | `CustomerIngest` create PENDING |
-| 3. Enqueue | same file `:43-51` (3s race; Redis down → still accepted) | Redis `bull:customer-fast-lane:*` (job = `{ ingestId }` only) |
-| 4. Return ACCEPTED | same file `:58` | — (request ends; sender never waits) |
+| 1. Guard + validate | `apps/api/src/customers/customers.controller.ts`, `apps/api/src/auth/api-key.guard.ts` | — (401 before anything is stored; each row validated, max 100) |
+| 2. Store inbox PENDING | `apps/api/src/customers/customers.service.ts:34-37` | `CustomerIngest` bulk create N× PENDING |
+| 3. Enqueue | same file `:43-57` (3s race; Redis down → still accepted) | Redis `bull:customer-fast-lane:*`, one `addBulk` of N jobs (`{ ingestId }` each) |
+| 4. Return ACCEPTED | same file `:64-69` | — (request ends; sender never waits) |
 | 5-6. Deliver + load | `apps/worker/src/fast-lane.processor.ts:25-35` | `CustomerIngest` read; idempotent skips |
 | 7. Mark PROCESSING | same file `:37-40` | `CustomerIngest` → PROCESSING, attempts +1 |
 | 8. Upsert truth | same file `:47-69` | `Customer` upsert by `externalId` |
@@ -90,7 +90,7 @@ not duplicated.
 | Piece | Code |
 | --- | --- |
 | Create (connection + handle) | `packages/shared/src/index.ts` (names + `redisConnection()`); `apps/api/src/api.module.ts:12-14` (producer side); `apps/worker/src/worker.module.ts:22-32` (consumer side) |
-| Push (`.add`) | `apps/api/src/customers/customers.service.ts:43-47` — `fastLane.add(PROCESS_INGEST, { ingestId }, ...)` on every create/update; `apps/worker/src/cron.processor.ts:63-68` — `addBulk` in `sweepPending`; `apps/worker/src/scheduler.service.ts:16-27` — `upsertJobScheduler` creating the two recurring cron jobs |
+| Push (`.add` / `.addBulk`) | `apps/api/src/customers/customers.service.ts:43-53` — `addBulk(PROCESS_INGEST, { ingestId })` × N per batch (one Redis round-trip); `apps/worker/src/cron.processor.ts:63-68` — `addBulk` in `sweepPending`; `apps/worker/src/scheduler.service.ts:16-27` — `upsertJobScheduler` creating the two recurring cron jobs |
 | Consume (`@Processor`) | `apps/worker/src/fast-lane.processor.ts:13-25`; `apps/worker/src/cron.processor.ts:28-44` |
 
 Fresh NestJS checklist: `npm i @nestjs/bullmq bullmq`, `forRoot({ connection })` + `registerQueue({ name })` in the module, `InjectQueue(name)` + `.add(jobName, data, opts)` to push, a `@Processor(name)` class extending `WorkerHost` with `process(job)` to run. Split across processes? Both sides need `forRoot` + `registerQueue` against the same Redis.
@@ -102,7 +102,6 @@ Redis down stalls both lanes: the queues are Redis keys (`bull:customer-fast-lan
 
 - Turbo log shows `worker started lanes=fast,cron` (4th process, easy to miss
   next to the 3 dev-server banners).
-- `POST /create-customer` → API logs `accepted <id>`, worker logs
-  `jobId=... ingestId=... done`.
+- `POST /create-customer` with `[{...}]` → API logs `accepted 1 rows` (or N), worker logs `jobId=... ingestId=... done` per row.
 - Redis keys `bull:customer-fast-lane:*` hold the handoff; Postgres
   `customerIngest` rows show PENDING → PROCESSING → DONE.

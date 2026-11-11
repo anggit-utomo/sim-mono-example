@@ -157,7 +157,7 @@ curl -s https://sim-docs.anggit.dev/ | grep -i flows
 curl -s -X POST https://sim-api.anggit.dev/create-customer \
   -H "x-api-key: <INGEST_API_KEY>" \
   -H 'Content-Type: application/json' \
-  -d '{"externalId":"deploy-probe-1","name":"Probe","email":"probe@example.com"}'
+  -d '[{"externalId":"deploy-probe-1","name":"Probe","email":"probe@example.com"}]'
 # -> 202 ACCEPTED with "delayMs": 0
 
 podman logs sim-worker | tail   # process-ingest completion

@@ -12,10 +12,10 @@ export const HAPPY: Step[] = [
 ];
 
 export const RUN_HAPPY = `${TOKEN_NOTE}
-# 1. create (use a fresh EXT- ID each repeat)
+# 1. create (use a fresh EXT- ID each repeat; body is an array, max 100)
 curl -X POST http://localhost:3001/create-customer \\
   -H "Content-Type: application/json" -H "x-api-key: dev-key-1" \\
-  -d '{"externalId":"EXT-990001","name":"Ada","email":"ada@example.com"}'
+  -d '[{"externalId":"EXT-990001","name":"Ada","email":"ada@example.com"}]'
 # 2. catch it PENDING (repeat until it flips)
 curl "http://localhost:3001/admin/ingests?status=PENDING" -H "Authorization: Bearer $T"
 # 3. confirm DONE + customer row
@@ -33,10 +33,9 @@ export const DELAYED: Step[] = [
 
 export const RUN_DELAYED = `${TOKEN_NOTE}
 # 1. set FAST_LANE_DELAY_MS=20000 in .env, restart API (Ctrl+C, pnpm dev)
-# 2. create — response shows "delayMs": 20000
 curl -X POST http://localhost:3001/create-customer \\
   -H "Content-Type: application/json" -H "x-api-key: dev-key-1" \\
-  -d '{"externalId":"EXT-990002","name":"Bo","email":"bo@example.com"}'
+  -d '[{"externalId":"EXT-990002","name":"Bo","email":"bo@example.com"}]'
 # 3. catch it mid-flight (within 20s)
 curl "http://localhost:3001/admin/ingests?status=PENDING" -H "Authorization: Bearer $T"
 curl "http://localhost:3001/admin/queues/fast-lane/jobs?state=delayed" -H "Authorization: Bearer $T"
@@ -55,7 +54,7 @@ export const RUN_FAILURE = `${TOKEN_NOTE}
 # 1. poison row (fails 3x, ends FAILED — the name itself is the fault)
 curl -X POST http://localhost:3001/create-customer \\
   -H "Content-Type: application/json" -H "x-api-key: dev-key-1" \\
-  -d '{"externalId":"EXT-990098","name":"__FAIL__boom","email":"boom@example.com"}'
+  -d '[{"externalId":"EXT-990098","name":"__FAIL__boom","email":"boom@example.com"}]'
 # 2. watch attempts 1 → 3, then FAILED with "injected fault"
 curl "http://localhost:3001/admin/ingests?status=FAILED" -H "Authorization: Bearer $T"
 # 3. requeue replays the SAME payload, so it fails again (attempts 4 → 6).
@@ -66,7 +65,7 @@ curl -X POST http://localhost:3001/admin/ingests/<INGEST_ID>/requeue -H "Authori
 # 4. recover for real: resend FIXED data for the same ID (new ingest wins)
 curl -X POST http://localhost:3001/update-customer \\
   -H "Content-Type: application/json" -H "x-api-key: dev-key-1" \\
-  -d '{"externalId":"EXT-990098","name":"Boom Fixed","email":"boom@example.com"}'
+  -d '[{"externalId":"EXT-990098","name":"Boom Fixed","email":"boom@example.com"}]'
 # 5. confirm DONE + customer row (the poison row itself stays FAILED — history)
 curl "http://localhost:3001/admin/ingests?status=DONE" -H "Authorization: Bearer $T"
 curl "http://localhost:3001/admin/customers?q=EXT-990098" -H "Authorization: Bearer $T"`;
@@ -92,7 +91,7 @@ export const RUN_CRON_B = `${TOKEN_NOTE}
 # so give it something to catch first: a poison row (FAILED, attempts 3 < 10).
 curl -X POST http://localhost:3001/create-customer \\
   -H "Content-Type: application/json" -H "x-api-key: dev-key-1" \\
-  -d '{"externalId":"EXT-990097","name":"__FAIL__sweep","email":"sweep@example.com"}'
+  -d '[{"externalId":"EXT-990097","name":"__FAIL__sweep","email":"sweep@example.com"}]'
 # wait ~30s until Ingests shows it FAILED, then fire the sweeper by hand:
 curl -X POST http://localhost:3001/admin/cron/sweep-pending/trigger -H "Authorization: Bearer $T"
 # → {"jobId":"..."} only. Now check:

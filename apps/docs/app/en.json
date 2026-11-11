@@ -114,7 +114,7 @@
   "lo_test": "Trigger a cron job, requeue a row, or retry a job, then filter Logs — a matching row appears within seconds. Filter customer-fast-lane + FAILED to see every failed delivery attempt.",
   "wt_h1": "Walkthrough — the happy path",
   "wt_steps": [
-    "Send a customer through the API (replace the ID to repeat): POST /create-customer with externalId EXT-990001, name Ada, email ada@example.com and header x-api-key dev-key-1. You get an ingestId, status ACCEPTED, and delayMs.",
+    "Send customers through the API (replace the ID to repeat): POST /create-customer with an array body like [{\"externalId\":\"EXT-990001\",\"name\":\"Ada\",\"email\":\"ada@example.com\"}] and header x-api-key dev-key-1. A single object or {\"items\":[...]} works too. You get count plus an items list of ingestIds, status ACCEPTED, and delayMs.",
     "Open Ingests, filter PENDING — your row appears, then flips to DONE within a second (or after the configured delay — see training tip below).",
     "Open Customers, search EXT-990001 — Ada is there.",
     "Send an update for the same ID with a new name. Customers shows one row with the new name — newest wins.",
@@ -125,7 +125,7 @@
   "wt_tip_2": "in",
   "wt_tip_3": "and restart the API to hold new rows in PENDING for 20 seconds, so you can catch them on the Ingests page. Default",
   "wt_tip_4": "delivers immediately.",
-  "wt_resp": "You get back (delayMs mirrors FAST_LANE_DELAY_MS; the API console also logs it):",
+  "wt_resp": "You get back one entry per row (delayMs mirrors FAST_LANE_DELAY_MS; the API console also logs the count):",
   "ts_h1": "Troubleshooting — when something looks wrong",
   "ts_th": [
     "Symptom",
@@ -181,7 +181,7 @@
   "fl_tb_h": "Test B — sweep-pending (safety net)",
   "fl_check": "Where to check (dashboard :3000)",
   "fl_c1": [
-    "Terminal: response shows ingestId, \"ACCEPTED\", delayMs. API console logs the accept line.",
+    "Terminal: response shows count, items [{ingestId}], \"ACCEPTED\", delayMs. API console logs the accept line.",
     "Dashboard → Ingests → Status = PENDING → your EXT- row, attempts 0.",
     "Dashboard → Queues → lane fast-lane, state waiting (then active) → job ingest-<id>-0.",
     "Dashboard → Ingests → Status = DONE; Customers → search the ID; Logs → queue customer-fast-lane, COMPLETED."

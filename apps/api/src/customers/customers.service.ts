@@ -29,32 +29,43 @@ export class CustomersService {
     @InjectQueue(FAST_LANE_QUEUE) private readonly fastLane: Queue,
   ) {}
 
-  async accept(operation: IngestOperation, payload: CustomerPayload) {
-    // 1) Store first (inbox). If anything below fails, the row stays PENDING.
-    const ingest = await this.prisma.customerIngest.create({
-      data: { externalId: payload.externalId, operation, payload: { ...payload } },
+  async acceptMany(operation: IngestOperation, payloads: CustomerPayload[]) {
+    // 1) Store first (inbox), one row per item. If anything below fails, rows stay PENDING.
+    const rows = await this.prisma.customerIngest.createManyAndReturn({
+      data: payloads.map((p) => ({ externalId: p.externalId, operation, payload: { ...p } })),
+      select: { id: true, externalId: true },
     });
 
-    // 2) Fast lane: enqueue immediately so a worker picks it up right away.
-    // The add is raced against a timeout: when Redis is down BullMQ buffers
-    // instead of throwing, and we must not hold the request open.
+    // 2) Fast lane: one Redis round-trip for the whole batch. The add is raced
+    // against a timeout: when Redis is down BullMQ buffers instead of throwing,
+    // and we must not hold the request open.
     try {
-      const data: ProcessIngestData = { ingestId: ingest.id };
-      const add = this.fastLane.add(JOBS.PROCESS_INGEST, data, {
-        ...FAST_LANE_JOB_OPTS,
-        jobId: ingestJobId(ingest.id, 0),
-        ...(this.fastLaneDelayMs > 0 ? { delay: this.fastLaneDelayMs } : {}),
-      });
+      const bulk = this.fastLane.addBulk(
+        rows.map((r) => ({
+          name: JOBS.PROCESS_INGEST,
+          data: { ingestId: r.id } satisfies ProcessIngestData,
+          opts: {
+            ...FAST_LANE_JOB_OPTS,
+            jobId: ingestJobId(r.id, 0),
+            ...(this.fastLaneDelayMs > 0 ? { delay: this.fastLaneDelayMs } : {}),
+          },
+        })),
+      );
       const timeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('enqueue timed out')), this.enqueueTimeoutMs),
       );
-      await Promise.race([add, timeout]);
+      await Promise.race([bulk, timeout]);
     } catch (err) {
-      // Redis down? Still accept: the cron sweeper will enqueue this row later.
-      this.logger.error(`Enqueue failed for ${ingest.id}: ${(err as Error).message}`);
+      // Redis down? Still accept: the cron sweeper will enqueue these rows later.
+      this.logger.error(`Enqueue failed for ${rows.length} rows: ${(err as Error).message}`);
     }
-    this.logger.log(`accepted ${ingest.id} delay=${this.fastLaneDelayMs / 1000}s`);
+    this.logger.log(`accepted ${rows.length} rows delay=${this.fastLaneDelayMs / 1000}s`);
 
-    return { ingestId: ingest.id, status: 'ACCEPTED', delayMs: this.fastLaneDelayMs };
+    return {
+      status: 'ACCEPTED',
+      delayMs: this.fastLaneDelayMs,
+      count: rows.length,
+      items: rows.map((r) => ({ ingestId: r.id, externalId: r.externalId })),
+    };
   }
 }

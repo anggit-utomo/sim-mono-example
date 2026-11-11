@@ -14,7 +14,7 @@ export default function WalkthroughContent() {
         ))}
       </ol>
       <span className="mock-label">{useT( 'mock')}</span>
-      <pre>{JSON.stringify({ externalId: 'EXT-990001', name: 'Ada', email: 'ada@example.com' }, null, 2)}</pre>
+      <pre>{JSON.stringify([{ externalId: 'EXT-990001', name: 'Ada', email: 'ada@example.com' }], null, 2)}</pre>
       <h2>{useT( 'wt_try_h')}</h2>
       <p>
         {useT( 'wt_tip_1')} <code>FAST_LANE_DELAY_MS=20000</code> {useT( 'wt_tip_2')}{' '}
@@ -25,7 +25,7 @@ export default function WalkthroughContent() {
       </div>
       <pre>{CURL}</pre>
       <p>{useT( 'wt_resp')}</p>
-      <pre>{JSON.stringify({ ingestId: '…', status: 'ACCEPTED', delayMs: 20000 }, null, 2)}</pre>
+      <pre>{JSON.stringify({ status: 'ACCEPTED', delayMs: 20000, count: 1, items: [{ ingestId: '…', externalId: 'EXT-990001' }] }, null, 2)}</pre>
     </>
   );
 }

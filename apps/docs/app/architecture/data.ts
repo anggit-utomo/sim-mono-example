@@ -125,8 +125,7 @@ export const STATS: FNode[] = [
 ];
 
 export const ADMIN: Array<[string, string, string]> = [
-  ['POST /create-customer, /update-customer', 'controller → accept()', 'create PENDING row; fastLane.add + delay'],
-  ['GET /admin/ingests?status=&page=', 'count + findMany where status', 'order createdAt desc, 50/page'],
+  ['POST /create-customer, /update-customer', 'controller → acceptMany()', 'body: 1 obj | array | {items}; createManyAndReturn PENDING; addBulk + delay'],
   ['POST /admin/ingests/:id/requeue', 'findUnique; fastLane.add jobId ingest-<id>-<attempts>', 'status flips on pickup, not here'],
   ['POST /admin/ingests/requeue-failed', 'findMany FAILED att<10, take 5000', 'addBulk same jobId scheme'],
   ['POST /admin/fast-lane/jobs/:id/retry', 'getJob(id) → job.retry()', '404 if aged out of Redis'],

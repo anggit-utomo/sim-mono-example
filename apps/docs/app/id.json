@@ -114,7 +114,7 @@
   "lo_test": "Trigger cron job, requeue baris, atau retry job, lalu filter Logs — baris yang cocok muncul dalam hitungan detik. Filter customer-fast-lane + FAILED untuk melihat semua percobaan pengiriman yang gagal.",
   "wt_h1": "Panduan — jalur bahagia",
   "wt_steps": [
-    "Kirim customer lewat API (ganti ID untuk mengulang): POST /create-customer dengan externalId EXT-990001, nama Ada, email ada@example.com dan header x-api-key dev-key-1. Anda dapat ingestId, status ACCEPTED, dan delayMs.",
+    "Kirim customer lewat API (ganti ID untuk mengulang): POST /create-customer dengan body array seperti [{\"externalId\":\"EXT-990001\",\"name\":\"Ada\",\"email\":\"ada@example.com\"}] dan header x-api-key dev-key-1. Satu objek atau {\"items\":[...]} juga bisa. Anda dapat count plus daftar items berisi ingestId, status ACCEPTED, dan delayMs.",
     "Buka Ingests, filter PENDING — baris Anda muncul, lalu berubah DONE dalam sedetik (atau setelah delay yang dikonfigurasi — lihat tips di bawah).",
     "Buka Customers, cari EXT-990001 — Ada ada di sana.",
     "Kirim update untuk ID yang sama dengan nama baru. Customers menunjukkan satu baris dengan nama baru — yang terbaru menang.",
@@ -125,7 +125,7 @@
   "wt_tip_2": "di",
   "wt_tip_3": "lalu restart API agar baris baru tertahan di PENDING 20 detik, sehingga sempat terlihat di halaman Ingests. Default",
   "wt_tip_4": "langsung terkirim.",
-  "wt_resp": "Responsnya (delayMs mengikuti FAST_LANE_DELAY_MS; konsol API juga mencatatnya):",
+  "wt_resp": "Responsnya satu entri per baris (delayMs mengikuti FAST_LANE_DELAY_MS; konsol API juga mencatat count-nya):",
   "ts_h1": "Pemecahan masalah — saat ada yang salah",
   "ts_th": [
     "Gejala",
@@ -181,7 +181,7 @@
   "fl_tb_h": "Test B — sweep-pending (jaring pengaman)",
   "fl_check": "Di mana memeriksa (dashboard :3000)",
   "fl_c1": [
-    "Terminal: respons menampilkan ingestId, \"ACCEPTED\", delayMs. Konsol API mencatat baris accept.",
+    "Terminal: respons menampilkan count, items [{ingestId}], \"ACCEPTED\", delayMs. Konsol API mencatat baris accept.",
     "Dashboard → Ingests → Status = PENDING → baris EXT- Anda, attempts 0.",
     "Dashboard → Queues → lane fast-lane, state waiting (lalu active) → job ingest-<id>-0.",
     "Dashboard → Ingests → Status = DONE; Customers → cari ID; Logs → queue customer-fast-lane, COMPLETED."
