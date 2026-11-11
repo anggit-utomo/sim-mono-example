@@ -138,6 +138,27 @@ cd /home/deploy/sim
 ./deploy.sh
 ```
 
+### Selective deploys (skip what didn't change)
+
+`./deploy.sh [service...]` — any combination of `api worker dashboard docs`,
+plus `all` (default) and `migrate` (runs migrations on the fresh api image,
+no restarts). Unknown args fail fast with the valid list.
+
+```bash
+./deploy.sh api        # api only: build + recreate + health gate (no migrate)
+./deploy.sh docs       # docs only: rebuild static export onto the volume (no restarts)
+./deploy.sh worker     # worker only
+./deploy.sh dashboard  # dashboard only (+ wget health gate)
+./deploy.sh migrate    # migrations only, no restarts (needs the api image)
+./deploy.sh api docs   # any combination
+```
+
+Rules the script enforces: `git pull` + image pruning always run; `redis-sim`
+is ensured up whenever anything runs; `migrate` and `docs-build` reuse built
+images so builds come first; `edge` is recreated alongside any long-lived
+service but never for a docs-only run (it serves the volume as-is). Add the
+`migrate` arg whenever the Prisma schema changed — plain `./deploy.sh api`
+
 That's it for routine deploys. Budget is otherwise untouched: no
 compose/exec there outside its own `./deploy.sh`, no port or
 container changes — only the three `sim-*` proxy blocks in its
