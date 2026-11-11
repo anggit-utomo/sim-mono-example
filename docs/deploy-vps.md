@@ -7,9 +7,14 @@ the same muscle memory as budget: `ssh`, `cd`, `./deploy.sh`.
 
 ## Architecture (what runs where)
 
-- `sim-edge` (Caddy, host `8080`/`8443`): TLS + routing for all three
-  domains. Budget's 80/443 bindings are untouched; outer routing of
-  `sim-*` traffic to 8080/8443 is host/firewall setup, not compose.
+- `budget-app` owns host 80/443 and terminates TLS for everything,
+  including the three sim domains. It `reverse_proxy`s `sim-*` to
+  `sim-edge:80` over `shared-net` (3 blocks appended to
+  `/home/deploy/budget/docker/Caddyfile`, same shape as its existing
+  `api.pucukpisang.my.id` block).
+- `sim-edge` (Caddy, plain HTTP `:80` on `shared-net`, `auto_https off`):
+  routes by Host to `sim-api:3001` / `sim-dashboard:3000`, serves
+  static docs from the `docs-static` volume. No host ports, no certs.
 - `sim-api` (3001), `sim-worker`, `sim-dashboard` (3000),
   `sim-redis` (BullMQ queue, no published ports).
 - Docs has no runtime: `docs-build` copies the static export onto the
@@ -17,7 +22,8 @@ the same muscle memory as budget: `ssh`, `cd`, `./deploy.sh`.
 - Postgres is one logical DB (`sim_prod`) inside the existing
   `budget-db` container — see ADR-0001. No second Postgres.
 - Decisions: `docs/adr/0001-reuse-budget-postgres.md`,
-  `docs/adr/0002-sim-own-caddy-edge.md`.
+  `docs/adr/0002-sim-own-caddy-edge.md` (updated: budget terminates
+  TLS, sim-edge is plain HTTP behind it).
 
 ## First-time setup (run once, in order)
 
@@ -36,11 +42,28 @@ If the name differs, replace `budget_default` in
 `infra/compose.prod.yaml` (3 services + the networks block) and
 continue — nothing else changes.
 
-**2. Confirm ports 8080/8443 are free** (the sim edge binds them):
+**2. Budget fronts the sim domains.** Append to
+`/home/deploy/budget/docker/Caddyfile` (outside `{$SERVER_NAME}`,
+next to the existing `api.pucukpisang.my.id` block — same shape):
 
-```bash
-ss -ltnp | grep -E '8080|8443'
+```caddy
+sim-api.anggit.dev {
+	reverse_proxy sim-edge:80
+}
+
+sim-dashboard.anggit.dev {
+	reverse_proxy sim-edge:80
+}
+
+sim-docs.anggit.dev {
+	reverse_proxy sim-edge:80
+}
 ```
+
+Then reload budget (`cd /home/deploy/budget && ./deploy.sh`, or the
+entrypoint's reload — no container restarts needed). Single IP means
+budget must hold 80/443; sim-edge can never complete ACME while
+budget answers there.
 
 **3. Create the database role and DB.** Run on the VPS host where you
 are now (`~/sim` == `/home/deploy/sim`) — not inside a container,
@@ -115,8 +138,10 @@ cd /home/deploy/sim
 ./deploy.sh
 ```
 
-That's it. Budget is never touched: no `cd /home/deploy/budget`,
-no compose/exec there, no edits to its Caddyfile.
+That's it for routine deploys. Budget is otherwise untouched: no
+compose/exec there outside its own `./deploy.sh`, no port or
+container changes — only the three `sim-*` proxy blocks in its
+Caddyfile (step 2) route to sim-edge.
 
 ## Verify it works
 
