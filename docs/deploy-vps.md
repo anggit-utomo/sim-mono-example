@@ -152,12 +152,13 @@ curl -s https://sim-api.anggit.dev/health
 curl -s https://sim-dashboard.anggit.dev/ | grep -i overview
 curl -s https://sim-docs.anggit.dev/ | grep -i flows
 
-# Ingest round-trip (ADMIN_TOKEN/keys from /home/deploy/sim/.env):
-curl -s -X POST https://sim-api.anggit.dev/customers \
-  -H "Authorization: Bearer <INGEST_API_KEY>" \
+# Ingest round-trip (a key from INGEST_API_KEYS in /home/deploy/sim/.env;
+# ingest uses x-api-key, NOT Authorization: Bearer which is admin-only):
+curl -s -X POST https://sim-api.anggit.dev/create-customer \
+  -H "x-api-key: <INGEST_API_KEY>" \
   -H 'Content-Type: application/json' \
   -d '{"externalId":"deploy-probe-1","name":"Probe","email":"probe@example.com"}'
-# -> ACCEPTED with "delayMs": 0
+# -> 202 ACCEPTED with "delayMs": 0
 
 podman logs sim-worker | tail   # process-ingest completion
 podman ps --format '{{.Names}}' # sim-* next to budget-*, both sets up
