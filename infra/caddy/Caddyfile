@@ -4,22 +4,15 @@
 	auto_https off
 }
 
-:80 {
-	handle sim-api.anggit.dev {
-		reverse_proxy sim-api:3001
-	}
+sim-api.anggit.dev:80 {
+	reverse_proxy sim-api:3001
+}
 
-	handle sim-dashboard.anggit.dev {
-		reverse_proxy sim-dashboard:3000
-	}
+sim-dashboard.anggit.dev:80 {
+	reverse_proxy sim-dashboard:3000
+}
 
-	handle sim-docs.anggit.dev {
-		root * /srv/sim/docs
-		file_server
-	}
-
-	# budget health or stray host hits: refuse, don't leak
-	handle {
-		respond "sim-edge" 404
-	}
+sim-docs.anggit.dev:80 {
+	root * /srv/sim/docs
+	file_server
 }
