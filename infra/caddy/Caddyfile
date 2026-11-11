@@ -1,12 +1,25 @@
-sim-api.anggit.dev {
-	reverse_proxy sim-api:3001
+# Plain-HTTP edge behind budget-app. Budget owns 80/443 and terminates TLS
+# for sim-*, proxying here over shared-net (see budget Caddyfile snippet).
+{
+	auto_https off
 }
 
-sim-dashboard.anggit.dev {
-	reverse_proxy sim-dashboard:3000
-}
+:80 {
+	handle sim-api.anggit.dev {
+		reverse_proxy sim-api:3001
+	}
 
-sim-docs.anggit.dev {
-	root * /srv/sim/docs
-	file_server
+	handle sim-dashboard.anggit.dev {
+		reverse_proxy sim-dashboard:3000
+	}
+
+	handle sim-docs.anggit.dev {
+		root * /srv/sim/docs
+		file_server
+	}
+
+	# budget health or stray host hits: refuse, don't leak
+	handle {
+		respond "sim-edge" 404
+	}
 }
